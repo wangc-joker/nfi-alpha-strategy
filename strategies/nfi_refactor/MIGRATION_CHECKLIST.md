@@ -1,0 +1,103 @@
+# NFI Migration Checklist
+
+## Reference
+
+Source file:
+
+```text
+D:\test\NostalgiaForInfinity\NostalgiaForInfinityX7.py
+```
+
+## Step 1: Parity Baseline
+
+- [x] Record original NFI backtest config.
+- [x] Record original NFI pairlist.
+- [x] Record original NFI timeranges.
+- [x] Record original NFI result for recent 6 month sample.
+- [x] Record NFIRefactorStrategy parity result for recent 6 month sample.
+- [ ] Record original NFI result for top9 / 300U.
+- [ ] Record original NFI result for top20 / 300U.
+- [ ] Record original NFI result for 3 month downtrend sample.
+
+## Step 2: Module Extraction
+
+- [x] Extract class constants and mode names.
+- [x] Extract mode coin lists.
+- [x] Extract top-level strategy defaults.
+- [x] Extract informative pair construction.
+- [x] Extract BTC informative indicators.
+- [x] Extract pair informative indicators.
+- [x] Extract base timeframe indicators.
+- [x] Extract populate_indicators orchestration.
+- [x] Extract global long protections.
+- [x] Extract global short protections.
+- [x] Extract populate_entry_trend entry signal factory.
+- [x] Split long entry modes into smaller modules.
+- [x] Extract long normal entry conditions #1-#6 as modular condition helpers.
+- [x] Extract long pump entry condition #21 as modular condition helper.
+- [x] Extract long entry condition #120 as modular condition helper.
+- [x] Extract long quick entry conditions #41-#46 as modular condition helpers.
+- [x] Extract long rebuy entry conditions #61-#63 as modular condition helpers.
+- [x] Extract long rapid entry conditions #101-#104 as modular condition helpers.
+- [x] Extract long top-coins entry conditions #141-#145 as modular condition helpers.
+- [x] Extract long scalp entry conditions #161-#163 as modular condition helpers.
+- [x] Split short entry modes into smaller modules.
+- [x] Extract short entry condition #501 as modular condition helper.
+- [x] Extract short normal entry conditions #502-#503 as modular condition helpers.
+- [x] Extract short entry condition #504 as modular condition helper.
+- [x] Extract short quick entry conditions #541-#542 as modular condition helpers.
+- [x] Extract short rapid entry condition #543 as modular condition helper.
+- [x] Extract short top-coins entry conditions #641-#642 as modular condition helpers.
+- [x] Extract short scalp entry condition #661 as modular condition helper.
+- [x] Extract custom stake amount.
+- [x] Extract leverage.
+- [x] Extract custom exit.
+- [x] Extract confirm_trade_exit.
+- [x] Extract and split profit target marker helper.
+- [x] Extract and split profit target exit decision helper.
+- [x] Extract populate_exit_trend.
+- [x] Extract simple grind/btc exit mode helpers.
+- [x] Extract top-coins exit mode orchestration.
+- [x] Extract scalp exit mode orchestration.
+- [x] Extract and split advanced normal/quick/rapid/rebuy/pump/high-profit exit mode orchestration.
+- [x] Extract shared long/short exit signal aggregators.
+- [x] Extract and split Williams-R long/short exit signal libraries.
+- [x] Extract and split DEC long/short exit signal libraries.
+- [x] Extract main long/short profit ladder exit helpers.
+- [x] Extract long/short emergency stoploss exit helpers.
+- [x] Extract order filled callback.
+- [x] Extract position adjustment routing.
+- [x] Extract small position adjustment helper methods.
+- [x] Extract total profit calculation helper.
+- [ ] Investigate grind adjustment detail handler parity drift.
+- [ ] Extract position adjustment detail handlers.
+- [x] Extract confirm_trade_entry and mode entry guards.
+- [x] Extract runtime mode/state helper methods.
+- [x] Extract ticker timeframe helper.
+- [x] Extract hold-trades runtime helpers.
+- [x] Extract runtime cache initialization and persistence.
+- [x] Extract runtime cache classes.
+- [x] Extract bot loop start runtime hook.
+
+## Step 3: Regression Checks
+
+For every extracted module:
+
+- [ ] Strategy loads.
+- [ ] Backtest completes.
+- [ ] Trade count remains close.
+- [ ] Profit remains close.
+- [ ] Drawdown remains close.
+- [ ] Entry tag distribution remains close.
+- [ ] Long/short split remains close.
+
+## Step 4: Post-Parity Improvements
+
+Only after parity:
+
+- [ ] Reduce low-quality entries.
+- [ ] Make runtime state persistent.
+- [ ] Improve dynamic coin universe.
+- [ ] Revisit short signal quality.
+- [ ] Tune stake sizing and max open trades.
+
