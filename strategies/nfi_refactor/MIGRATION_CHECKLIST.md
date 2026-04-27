@@ -33,14 +33,14 @@ D:\test\NostalgiaForInfinity\NostalgiaForInfinityX7.py
 - [x] Extract global short protections.
 - [x] Extract populate_entry_trend entry signal factory.
 - [x] Split long entry modes into smaller modules.
-- [x] Extract long normal entry conditions #1-#6 as modular condition helpers.
-- [x] Extract long pump entry condition #21 as modular condition helper.
-- [x] Extract long entry condition #120 as modular condition helper.
-- [x] Extract long quick entry conditions #41-#46 as modular condition helpers.
-- [x] Extract long rebuy entry conditions #61-#63 as modular condition helpers.
-- [x] Extract long rapid entry conditions #101-#104 as modular condition helpers.
-- [x] Extract long top-coins entry conditions #141-#145 as modular condition helpers.
-- [x] Extract long scalp entry conditions #161-#163 as modular condition helpers.
+- [x] Extract and split long normal entry conditions #1-#6 as modular condition helpers.
+- [x] Extract and split long pump entry condition #21 as modular condition helper.
+- [x] Extract and split long entry condition #120 as modular condition helper.
+- [x] Extract and split long quick entry conditions #41-#46 as modular condition helpers.
+- [x] Extract and split long rebuy entry conditions #61-#63 as modular condition helpers.
+- [x] Extract and split long rapid entry conditions #101-#104 as modular condition helpers.
+- [x] Extract and split long top-coins entry conditions #141-#145 as modular condition helpers.
+- [x] Extract and split long scalp entry conditions #161-#163 as modular condition helpers.
 - [x] Split short entry modes into smaller modules.
 - [x] Extract short entry condition #501 as modular condition helper.
 - [x] Extract short normal entry conditions #502-#503 as modular condition helpers.
