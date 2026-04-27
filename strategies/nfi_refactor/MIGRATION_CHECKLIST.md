@@ -41,6 +41,7 @@ D:\test\NostalgiaForInfinity\NostalgiaForInfinityX7.py
 - [x] Extract and split long quick entry conditions #41-#46 as modular condition helpers.
 - [x] Split quick long entry conditions #41-#46 into individual modules.
 - [x] Extract and split long rebuy entry conditions #61-#63 as modular condition helpers.
+- [x] Split rebuy long entry conditions #61-#63 into individual modules.
 - [x] Extract and split long rapid entry conditions #101-#104 as modular condition helpers.
 - [x] Split rapid long entry conditions #101-#104 into individual modules.
 - [x] Extract and split long top-coins entry conditions #141-#145 as modular condition helpers.
