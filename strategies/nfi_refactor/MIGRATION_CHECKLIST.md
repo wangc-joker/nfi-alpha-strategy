@@ -47,6 +47,7 @@ D:\test\NostalgiaForInfinity\NostalgiaForInfinityX7.py
 - [x] Extract and split long top-coins entry conditions #141-#145 as modular condition helpers.
 - [x] Split top-coins long entry conditions #141-#145 into individual modules.
 - [x] Extract and split long scalp entry conditions #161-#163 as modular condition helpers.
+- [x] Split scalp long entry conditions #161-#163 into individual modules.
 - [x] Split short entry modes into smaller modules.
 - [x] Extract short entry condition #501 as modular condition helper.
 - [x] Extract short normal entry conditions #502-#503 as modular condition helpers.
