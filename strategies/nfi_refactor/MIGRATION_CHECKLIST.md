@@ -51,7 +51,7 @@ D:\test\NostalgiaForInfinity\NostalgiaForInfinityX7.py
 - [x] Extract short scalp entry condition #661 as modular condition helper.
 - [x] Extract custom stake amount.
 - [x] Extract leverage.
-- [x] Extract custom exit.
+- [x] Extract and split custom exit orchestration.
 - [x] Extract confirm_trade_exit.
 - [x] Extract and split profit target marker helper.
 - [x] Extract and split profit target exit decision helper.
