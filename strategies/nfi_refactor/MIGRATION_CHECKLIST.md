@@ -60,11 +60,11 @@ D:\test\NostalgiaForInfinity\NostalgiaForInfinityX7.py
 - [x] Extract top-coins exit mode orchestration.
 - [x] Extract scalp exit mode orchestration.
 - [x] Extract and split advanced normal/quick/rapid/rebuy/pump/high-profit exit mode orchestration.
-- [x] Extract shared long/short exit signal aggregators.
+- [x] Extract and split shared long/short exit signal aggregators.
 - [x] Extract and split Williams-R long/short exit signal libraries.
 - [x] Extract and split DEC long/short exit signal libraries.
-- [x] Extract main long/short profit ladder exit helpers.
-- [x] Extract long/short emergency stoploss exit helpers.
+- [x] Extract and split main long/short profit ladder exit helpers.
+- [x] Extract and split long/short emergency stoploss exit helpers.
 - [x] Extract order filled callback.
 - [x] Extract position adjustment routing.
 - [x] Extract small position adjustment helper methods.
