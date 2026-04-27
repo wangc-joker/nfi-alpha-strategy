@@ -74,6 +74,7 @@ D:\test\NostalgiaForInfinity\NostalgiaForInfinityX7.py
 - [x] Split quick exit mode orchestration into long/short modules.
 - [x] Split rebuy exit mode orchestration into long/short modules.
 - [x] Split scalp exit mode orchestration into long/short modules.
+- [x] Split normal exit mode orchestration into long/short modules.
 - [x] Extract and split shared long/short exit signal aggregators.
 - [x] Extract and split Williams-R long/short exit signal libraries.
 - [x] Extract and split DEC long/short exit signal libraries by profit band.
