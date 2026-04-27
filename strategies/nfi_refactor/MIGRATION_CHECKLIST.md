@@ -35,6 +35,7 @@ D:\test\NostalgiaForInfinity\NostalgiaForInfinityX7.py
 - [x] Extract populate_entry_trend entry signal factory.
 - [x] Split long entry modes into smaller modules.
 - [x] Extract and split long normal entry conditions #1-#6 as modular condition helpers.
+- [x] Split normal long entry conditions #1-#6 into individual modules.
 - [x] Extract and split long pump entry condition #21 as modular condition helper.
 - [x] Extract and split long entry condition #120 as modular condition helper.
 - [x] Extract and split long quick entry conditions #41-#46 as modular condition helpers.
