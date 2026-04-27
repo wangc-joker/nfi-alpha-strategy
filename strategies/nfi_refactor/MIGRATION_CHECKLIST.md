@@ -69,6 +69,7 @@ D:\test\NostalgiaForInfinity\NostalgiaForInfinityX7.py
 - [x] Extract position adjustment routing.
 - [x] Extract small position adjustment helper methods.
 - [x] Extract total profit calculation helper.
+- [x] Split experimental grind adjustment handlers into long/short v2/v3 modules.
 - [ ] Investigate grind adjustment detail handler parity drift.
 - [ ] Extract position adjustment detail handlers.
 - [x] Extract confirm_trade_entry and mode entry guards.
