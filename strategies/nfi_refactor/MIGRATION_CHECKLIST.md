@@ -53,6 +53,7 @@ D:\test\NostalgiaForInfinity\NostalgiaForInfinityX7.py
 - [x] Extract short rapid entry condition #543 as modular condition helper.
 - [x] Extract short top-coins entry conditions #641-#642 as modular condition helpers.
 - [x] Extract short scalp entry condition #661 as modular condition helper.
+- [x] Split short entry conditions #501-#504, #541-#543, #641-#642, #661 into individual modules.
 - [x] Extract custom stake amount.
 - [x] Extract leverage.
 - [x] Extract and split custom exit orchestration.
