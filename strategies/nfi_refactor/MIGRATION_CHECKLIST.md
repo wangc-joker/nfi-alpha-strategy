@@ -30,6 +30,7 @@ D:\test\NostalgiaForInfinity\NostalgiaForInfinityX7.py
 - [x] Extract base timeframe indicators.
 - [x] Extract populate_indicators orchestration.
 - [x] Extract and split global long protections.
+- [x] Split long global protection expression into chunk modules.
 - [x] Extract and split global short protections.
 - [x] Extract populate_entry_trend entry signal factory.
 - [x] Split long entry modes into smaller modules.
