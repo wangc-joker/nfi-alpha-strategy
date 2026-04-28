@@ -1,6 +1,6 @@
 """Short-side custom exit routing extracted from NFI."""
 
-from nfi_refactor.exits.custom_exit_result import format_exit_reason
+from nfi_refactor.exits.custom_exit_call import call_custom_exit_mode
 
 
 def route_short_custom_exit(
@@ -29,7 +29,9 @@ def route_short_custom_exit(
 
   # Short normal mode
   if any(c in strategy.short_normal_mode_tags for c in enter_tags):
-    exit_reason = format_exit_reason(strategy.short_exit_normal(
+    exit_reason = call_custom_exit_mode(
+      strategy.short_exit_normal,
+      enter_tag,
       pair,
       current_rate,
       profit_stake,
@@ -49,13 +51,15 @@ def route_short_custom_exit(
       trade,
       current_time,
       enter_tags,
-    ), enter_tag)
+    )
     if exit_reason is not None:
       return exit_reason
 
   # Short Pump mode
   if any(c in strategy.short_pump_mode_tags for c in enter_tags):
-    exit_reason = format_exit_reason(strategy.short_exit_pump(
+    exit_reason = call_custom_exit_mode(
+      strategy.short_exit_pump,
+      enter_tag,
       pair,
       current_rate,
       profit_stake,
@@ -75,13 +79,15 @@ def route_short_custom_exit(
       trade,
       current_time,
       enter_tags,
-    ), enter_tag)
+    )
     if exit_reason is not None:
       return exit_reason
 
   # Short Quick mode
   if any(c in strategy.short_quick_mode_tags for c in enter_tags):
-    exit_reason = format_exit_reason(strategy.short_exit_quick(
+    exit_reason = call_custom_exit_mode(
+      strategy.short_exit_quick,
+      enter_tag,
       pair,
       current_rate,
       profit_stake,
@@ -101,13 +107,15 @@ def route_short_custom_exit(
       trade,
       current_time,
       enter_tags,
-    ), enter_tag)
+    )
     if exit_reason is not None:
       return exit_reason
 
   # Short Rebuy mode
   if all(c in strategy.short_rebuy_mode_tags for c in enter_tags):
-    exit_reason = format_exit_reason(strategy.short_exit_rebuy(
+    exit_reason = call_custom_exit_mode(
+      strategy.short_exit_rebuy,
+      enter_tag,
       pair,
       current_rate,
       profit_stake,
@@ -127,13 +135,15 @@ def route_short_custom_exit(
       trade,
       current_time,
       enter_tags,
-    ), enter_tag)
+    )
     if exit_reason is not None:
       return exit_reason
 
   # Short high profit mode
   if any(c in strategy.short_high_profit_mode_tags for c in enter_tags):
-    exit_reason = format_exit_reason(strategy.short_exit_high_profit(
+    exit_reason = call_custom_exit_mode(
+      strategy.short_exit_high_profit,
+      enter_tag,
       pair,
       current_rate,
       profit_stake,
@@ -153,13 +163,15 @@ def route_short_custom_exit(
       trade,
       current_time,
       enter_tags,
-    ), enter_tag)
+    )
     if exit_reason is not None:
       return exit_reason
 
   # Short rapid mode
   if any(c in strategy.short_rapid_mode_tags for c in enter_tags):
-    exit_reason = format_exit_reason(strategy.short_exit_rapid(
+    exit_reason = call_custom_exit_mode(
+      strategy.short_exit_rapid,
+      enter_tag,
       pair,
       current_rate,
       profit_stake,
@@ -179,7 +191,7 @@ def route_short_custom_exit(
       trade,
       current_time,
       enter_tags,
-    ), enter_tag)
+    )
     if exit_reason is not None:
       return exit_reason
 
@@ -190,7 +202,9 @@ def route_short_custom_exit(
       c in (strategy.short_scalp_mode_tags + strategy.short_rebuy_mode_tags + strategy.short_grind_mode_tags) for c in enter_tags
     )
   ):
-    exit_reason = format_exit_reason(strategy.short_exit_scalp(
+    exit_reason = call_custom_exit_mode(
+      strategy.short_exit_scalp,
+      enter_tag,
       pair,
       current_rate,
       profit_stake,
@@ -210,7 +224,7 @@ def route_short_custom_exit(
       trade,
       current_time,
       enter_tags,
-    ), enter_tag)
+    )
     if exit_reason is not None:
       return exit_reason
 
@@ -234,7 +248,9 @@ def route_short_custom_exit(
     )
   ):
     # use normal mode for such trades
-    exit_reason = format_exit_reason(strategy.long_exit_normal(
+    exit_reason = call_custom_exit_mode(
+      strategy.long_exit_normal,
+      enter_tag,
       pair,
       current_rate,
       profit_stake,
@@ -254,7 +270,7 @@ def route_short_custom_exit(
       trade,
       current_time,
       enter_tags,
-    ), enter_tag)
+    )
     if exit_reason is not None:
       return exit_reason
 
@@ -276,7 +292,9 @@ def route_short_custom_exit(
     )
   ):
     # use normal mode for such trades
-    exit_reason = format_exit_reason(strategy.short_exit_normal(
+    exit_reason = call_custom_exit_mode(
+      strategy.short_exit_normal,
+      enter_tag,
       pair,
       current_rate,
       profit_stake,
@@ -296,7 +314,7 @@ def route_short_custom_exit(
       trade,
       current_time,
       enter_tags,
-    ), enter_tag)
+    )
     if exit_reason is not None:
       return exit_reason
 
