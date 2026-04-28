@@ -35,6 +35,39 @@ def get_adjustment_enter_tags(trade) -> list:
   return enter_tag.split()
 
 
+def all_tags_in(enter_tags, valid_tags):
+  return all(c in valid_tags for c in enter_tags)
+
+
+def any_tags_in(enter_tags, valid_tags):
+  return any(c in valid_tags for c in enter_tags)
+
+
+def is_long_grind_mode(strategy, enter_tags):
+  return all_tags_in(enter_tags, strategy.long_grind_mode_tags)
+
+
+def is_long_btc_mode(strategy, enter_tags):
+  return all_tags_in(enter_tags, strategy.long_btc_mode_tags)
+
+
+def is_short_grind_mode(strategy, enter_tags):
+  return all_tags_in(enter_tags, strategy.short_grind_mode_tags)
+
+
+def is_v2_adjustment_date(strategy, trade):
+  is_backtest = strategy.is_backtest_mode()
+  return trade.open_date_utc.replace(tzinfo=None) >= datetime(2025, 2, 13) or is_backtest
+
+
+def is_system_v3_family(strategy, trade):
+  return (
+    strategy.is_system_v3(trade)
+    or strategy.is_system_v3_1(trade)
+    or strategy.is_system_v3_2(trade)
+  )
+
+
 def build_adjustment_call_context(
   trade,
   enter_tags,
@@ -64,15 +97,12 @@ def build_adjustment_call_context(
 
 
 def build_adjustment_mode_state(strategy, trade, enter_tags) -> AdjustmentModeState:
-  is_backtest = strategy.is_backtest_mode()
   return AdjustmentModeState(
-    is_long_grind_mode=all(c in strategy.long_grind_mode_tags for c in enter_tags),
-    is_long_btc_mode=all(c in strategy.long_btc_mode_tags for c in enter_tags),
-    is_short_grind_mode=all(c in strategy.short_grind_mode_tags for c in enter_tags),
-    is_v2_date=trade.open_date_utc.replace(tzinfo=None) >= datetime(2025, 2, 13) or is_backtest,
-    is_system_v3_family=strategy.is_system_v3(trade)
-    or strategy.is_system_v3_1(trade)
-    or strategy.is_system_v3_2(trade),
+    is_long_grind_mode=is_long_grind_mode(strategy, enter_tags),
+    is_long_btc_mode=is_long_btc_mode(strategy, enter_tags),
+    is_short_grind_mode=is_short_grind_mode(strategy, enter_tags),
+    is_v2_date=is_v2_adjustment_date(strategy, trade),
+    is_system_v3_family=is_system_v3_family(strategy, trade),
   )
 
 
@@ -90,14 +120,6 @@ def call_adjustment_handler(adjustment_func, context: AdjustmentCallContext):
     context.current_entry_profit,
     context.current_exit_profit,
   )
-
-
-def all_tags_in(enter_tags, valid_tags):
-  return all(c in valid_tags for c in enter_tags)
-
-
-def any_tags_in(enter_tags, valid_tags):
-  return any(c in valid_tags for c in enter_tags)
 
 
 def matches_long_rebuy_adjustment(strategy, enter_tags):
