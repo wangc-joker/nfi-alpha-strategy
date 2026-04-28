@@ -100,6 +100,7 @@ D:\test\NostalgiaForInfinity\NostalgiaForInfinityX7.py
 - [x] Extract rebuy position adjustment handlers.
 - [x] Extract rebuy position adjustment shared context.
 - [x] Extract rebuy position adjustment return helpers.
+- [x] Extract rebuy position adjustment sub-grind state helper.
 - [x] Extract confirm_trade_entry and mode entry guards.
 - [x] Extract runtime mode/state helper methods.
 - [x] Extract ticker timeframe helper.

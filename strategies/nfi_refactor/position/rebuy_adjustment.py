@@ -28,6 +28,17 @@ class RebuyAdjustmentContext:
   slice_profit_entry: float
 
 
+@dataclass
+class RebuySubGrindState:
+  partial_sell: bool
+  sub_grind_count: int
+  total_amount: float
+  total_cost: float
+  current_open_rate: float
+  current_grind_stake: float
+  current_grind_stake_profit: float
+
+
 def get_rebuy_exit_rate(strategy, trade: Trade, current_rate: float) -> float:
   exit_rate = current_rate
   if strategy.dp.runmode.value in ("live", "dry_run"):
@@ -95,6 +106,49 @@ def build_rebuy_adjustment_context(
     profit_ratio=profit_ratio,
     slice_amount=slice_amount,
     slice_profit_entry=slice_profit_entry,
+  )
+
+
+def build_rebuy_sub_grind_state(
+  strategy,
+  trade: Trade,
+  filled_orders: list,
+  exit_rate: float,
+  min_stake: float,
+  sub_entry_side: str,
+  partial_exit_side: str,
+) -> RebuySubGrindState:
+  partial_sell = False
+  sub_grind_count = 0
+  total_amount = 0.0
+  total_cost = 0.0
+  current_open_rate = 0.0
+  current_grind_stake = 0.0
+  current_grind_stake_profit = 0.0
+
+  for order in reversed(filled_orders):
+    if (order.ft_order_side == sub_entry_side) and (order is not filled_orders[0]):
+      sub_grind_count += 1
+      total_amount += order.safe_filled
+      total_cost += order.safe_filled * order.safe_price
+    elif order.ft_order_side == partial_exit_side:
+      if (order.safe_remaining * exit_rate / (trade.leverage if strategy.is_futures_mode else 1.0)) > min_stake:
+        partial_sell = True
+      break
+
+  if sub_grind_count > 0:
+    current_open_rate = total_cost / total_amount
+    current_grind_stake = total_amount * exit_rate * (1 - trade.fee_close)
+    current_grind_stake_profit = current_grind_stake - total_cost
+
+  return RebuySubGrindState(
+    partial_sell=partial_sell,
+    sub_grind_count=sub_grind_count,
+    total_amount=total_amount,
+    total_cost=total_cost,
+    current_open_rate=current_open_rate,
+    current_grind_stake=current_grind_stake,
+    current_grind_stake_profit=current_grind_stake_profit,
   )
 
 
@@ -208,26 +262,17 @@ def long_rebuy_adjust_trade_position(
   rebuy_mode_sub_thresholds = (
     strategy.rebuy_mode_thresholds_futures if strategy.is_futures_mode else strategy.rebuy_mode_thresholds_spot
   )
-  partial_sell = False
-  sub_grind_count = 0
-  total_amount = 0.0
-  total_cost = 0.0
-  current_open_rate = 0.0
-  current_grind_stake = 0.0
-  current_grind_stake_profit = 0.0
-  for order in reversed(filled_orders):
-    if (order.ft_order_side == "buy") and (order is not filled_orders[0]):
-      sub_grind_count += 1
-      total_amount += order.safe_filled
-      total_cost += order.safe_filled * order.safe_price
-    elif order.ft_order_side == "sell":
-      if (order.safe_remaining * exit_rate / (trade.leverage if strategy.is_futures_mode else 1.0)) > min_stake:
-        partial_sell = True
-      break
-  if sub_grind_count > 0:
-    current_open_rate = total_cost / total_amount
-    current_grind_stake = total_amount * exit_rate * (1 - trade.fee_close)
-    current_grind_stake_profit = current_grind_stake - total_cost
+  sub_grind_state = build_rebuy_sub_grind_state(
+    strategy,
+    trade,
+    filled_orders,
+    exit_rate,
+    min_stake,
+    sub_entry_side="buy",
+    partial_exit_side="sell",
+  )
+  partial_sell = sub_grind_state.partial_sell
+  sub_grind_count = sub_grind_state.sub_grind_count
 
   if (not partial_sell) and (sub_grind_count < max_sub_grinds):
     if (
@@ -334,26 +379,17 @@ def long_rebuy_adjust_trade_position_v3(
     if strategy.is_futures_mode
     else strategy.system_v3_rebuy_mode_thresholds_spot
   )
-  partial_sell = False
-  sub_grind_count = 0
-  total_amount = 0.0
-  total_cost = 0.0
-  current_open_rate = 0.0
-  current_grind_stake = 0.0
-  current_grind_stake_profit = 0.0
-  for order in reversed(filled_orders):
-    if (order.ft_order_side == "buy") and (order is not filled_orders[0]):
-      sub_grind_count += 1
-      total_amount += order.safe_filled
-      total_cost += order.safe_filled * order.safe_price
-    elif order.ft_order_side == "sell":
-      if (order.safe_remaining * exit_rate / (trade.leverage if strategy.is_futures_mode else 1.0)) > min_stake:
-        partial_sell = True
-      break
-  if sub_grind_count > 0:
-    current_open_rate = total_cost / total_amount
-    current_grind_stake = total_amount * exit_rate * (1 - trade.fee_close)
-    current_grind_stake_profit = current_grind_stake - total_cost
+  sub_grind_state = build_rebuy_sub_grind_state(
+    strategy,
+    trade,
+    filled_orders,
+    exit_rate,
+    min_stake,
+    sub_entry_side="buy",
+    partial_exit_side="sell",
+  )
+  partial_sell = sub_grind_state.partial_sell
+  sub_grind_count = sub_grind_state.sub_grind_count
 
   if (not partial_sell) and (sub_grind_count < max_sub_grinds):
     if (
@@ -438,26 +474,17 @@ def short_rebuy_adjust_trade_position(
   rebuy_mode_sub_thresholds = (
     strategy.rebuy_mode_thresholds_futures if strategy.is_futures_mode else strategy.rebuy_mode_thresholds_spot
   )
-  partial_sell = False
-  sub_grind_count = 0
-  total_amount = 0.0
-  total_cost = 0.0
-  current_open_rate = 0.0
-  current_grind_stake = 0.0
-  current_grind_stake_profit = 0.0
-  for order in reversed(filled_orders):
-    if (order.ft_order_side == "sell") and (order is not filled_orders[0]):
-      sub_grind_count += 1
-      total_amount += order.safe_filled
-      total_cost += order.safe_filled * order.safe_price
-    elif order.ft_order_side == "buy":
-      if (order.safe_remaining * exit_rate / (trade.leverage if strategy.is_futures_mode else 1.0)) > min_stake:
-        partial_sell = True
-      break
-  if sub_grind_count > 0:
-    current_open_rate = total_cost / total_amount
-    current_grind_stake = total_amount * exit_rate * (1 - trade.fee_close)
-    current_grind_stake_profit = current_grind_stake - total_cost
+  sub_grind_state = build_rebuy_sub_grind_state(
+    strategy,
+    trade,
+    filled_orders,
+    exit_rate,
+    min_stake,
+    sub_entry_side="sell",
+    partial_exit_side="buy",
+  )
+  partial_sell = sub_grind_state.partial_sell
+  sub_grind_count = sub_grind_state.sub_grind_count
 
   if (not partial_sell) and (sub_grind_count < max_sub_grinds):
     if (
@@ -554,26 +581,17 @@ def short_rebuy_adjust_trade_position_v3(
     if strategy.is_futures_mode
     else strategy.system_v3_rebuy_mode_thresholds_spot
   )
-  partial_sell = False
-  sub_grind_count = 0
-  total_amount = 0.0
-  total_cost = 0.0
-  current_open_rate = 0.0
-  current_grind_stake = 0.0
-  current_grind_stake_profit = 0.0
-  for order in reversed(filled_orders):
-    if (order.ft_order_side == "sell") and (order is not filled_orders[0]):
-      sub_grind_count += 1
-      total_amount += order.safe_filled
-      total_cost += order.safe_filled * order.safe_price
-    elif order.ft_order_side == "buy":
-      if (order.safe_remaining * exit_rate / (trade.leverage if strategy.is_futures_mode else 1.0)) > min_stake:
-        partial_sell = True
-      break
-  if sub_grind_count > 0:
-    current_open_rate = total_cost / total_amount
-    current_grind_stake = total_amount * exit_rate * (1 - trade.fee_close)
-    current_grind_stake_profit = current_grind_stake - total_cost
+  sub_grind_state = build_rebuy_sub_grind_state(
+    strategy,
+    trade,
+    filled_orders,
+    exit_rate,
+    min_stake,
+    sub_entry_side="sell",
+    partial_exit_side="buy",
+  )
+  partial_sell = sub_grind_state.partial_sell
+  sub_grind_count = sub_grind_state.sub_grind_count
 
   if (not partial_sell) and (sub_grind_count < max_sub_grinds):
     if (
