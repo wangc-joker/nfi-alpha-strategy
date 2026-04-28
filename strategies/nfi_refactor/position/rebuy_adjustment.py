@@ -378,6 +378,37 @@ def try_build_rebuy_entry_attempt(
   return RebuyEntryAttempt(handled=True, adjustment=adjustment)
 
 
+def try_build_rebuy_entry_attempt_from_context(
+  strategy,
+  trade: Trade,
+  current_time: datetime,
+  current_rate: float,
+  context: RebuyAdjustmentContext,
+  is_short: bool,
+  use_v3: bool,
+  entry_allowed,
+) -> RebuyEntryAttempt:
+  return try_build_rebuy_entry_attempt(
+    strategy,
+    trade,
+    current_time,
+    current_rate,
+    context.filled_orders,
+    context.exit_rate,
+    context.min_stake,
+    context.max_stake,
+    context.last_candle,
+    context.slice_amount,
+    context.slice_profit_entry,
+    context.profit_stake,
+    context.profit_ratio,
+    context.has_order_tags,
+    is_short=is_short,
+    use_v3=use_v3,
+    entry_allowed=entry_allowed,
+  )
+
+
 def return_rebuy_derisk_adjustment(
   strategy,
   trade: Trade,
@@ -439,6 +470,25 @@ def try_return_rebuy_derisk_adjustment(
   return None
 
 
+def try_return_rebuy_derisk_adjustment_from_context(
+  strategy,
+  trade: Trade,
+  current_time: datetime,
+  context: RebuyAdjustmentContext,
+):
+  return try_return_rebuy_derisk_adjustment(
+    strategy,
+    trade,
+    current_time,
+    context.exit_rate,
+    context.min_stake,
+    context.slice_amount,
+    context.profit_stake,
+    context.profit_ratio,
+    context.has_order_tags,
+  )
+
+
 def long_rebuy_adjust_trade_position(
   strategy,
   trade: Trade,
@@ -458,50 +508,28 @@ def long_rebuy_adjust_trade_position(
   if context is None:
     return None
 
-  min_stake = context.min_stake
-  max_stake = context.max_stake
-  last_candle = context.last_candle
-  filled_orders = context.filled_orders
-  filled_exits = context.filled_exits
-  count_of_exits = context.count_of_exits
-  has_order_tags = context.has_order_tags
-  exit_rate = context.exit_rate
-  profit_stake = context.profit_stake
-  profit_ratio = context.profit_ratio
-  slice_amount = context.slice_amount
-  slice_profit_entry = context.slice_profit_entry
-
   # The first exit is de-risk (providing the trade is still open)
-  if (count_of_exits > 0) and (filled_exits[0].ft_order_tag in ["derisk_level_3"]):
+  if (context.count_of_exits > 0) and (context.filled_exits[0].ft_order_tag in ["derisk_level_3"]):
     return strategy.long_grind_adjust_trade_position_v2(
       trade,
       enter_tags,
       current_time,
       current_rate,
       current_profit,
-      min_stake,
-      max_stake,
+      context.min_stake,
+      context.max_stake,
       current_entry_rate,
       current_exit_rate,
       current_entry_profit,
       current_exit_profit,
     )
 
-  entry_attempt = try_build_rebuy_entry_attempt(
+  entry_attempt = try_build_rebuy_entry_attempt_from_context(
     strategy,
     trade,
     current_time,
     current_rate,
-    filled_orders,
-    exit_rate,
-    min_stake,
-    max_stake,
-    last_candle,
-    slice_amount,
-    slice_profit_entry,
-    profit_stake,
-    profit_ratio,
-    has_order_tags,
+    context,
     is_short=False,
     use_v3=False,
     entry_allowed=long_rebuy_entry_allowed,
@@ -509,16 +537,11 @@ def long_rebuy_adjust_trade_position(
   if entry_attempt.handled:
     return entry_attempt.adjustment
 
-  derisk_adjustment = try_return_rebuy_derisk_adjustment(
+  derisk_adjustment = try_return_rebuy_derisk_adjustment_from_context(
     strategy,
     trade,
     current_time,
-    exit_rate,
-    min_stake,
-    slice_amount,
-    profit_stake,
-    profit_ratio,
-    has_order_tags,
+    context,
   )
   if derisk_adjustment is not None:
     return derisk_adjustment
@@ -547,32 +570,12 @@ def long_rebuy_adjust_trade_position_v3(
   if context is None:
     return None
 
-  min_stake = context.min_stake
-  max_stake = context.max_stake
-  last_candle = context.last_candle
-  filled_orders = context.filled_orders
-  has_order_tags = context.has_order_tags
-  exit_rate = context.exit_rate
-  profit_stake = context.profit_stake
-  profit_ratio = context.profit_ratio
-  slice_amount = context.slice_amount
-  slice_profit_entry = context.slice_profit_entry
-
-  entry_attempt = try_build_rebuy_entry_attempt(
+  entry_attempt = try_build_rebuy_entry_attempt_from_context(
     strategy,
     trade,
     current_time,
     current_rate,
-    filled_orders,
-    exit_rate,
-    min_stake,
-    max_stake,
-    last_candle,
-    slice_amount,
-    slice_profit_entry,
-    profit_stake,
-    profit_ratio,
-    has_order_tags,
+    context,
     is_short=False,
     use_v3=True,
     entry_allowed=long_rebuy_v3_entry_allowed,
@@ -601,50 +604,28 @@ def short_rebuy_adjust_trade_position(
   if context is None:
     return None
 
-  min_stake = context.min_stake
-  max_stake = context.max_stake
-  last_candle = context.last_candle
-  filled_orders = context.filled_orders
-  filled_exits = context.filled_exits
-  count_of_exits = context.count_of_exits
-  has_order_tags = context.has_order_tags
-  exit_rate = context.exit_rate
-  profit_stake = context.profit_stake
-  profit_ratio = context.profit_ratio
-  slice_amount = context.slice_amount
-  slice_profit_entry = context.slice_profit_entry
-
   # The first exit is de-risk (providing the trade is still open)
-  if (count_of_exits > 0) and (filled_exits[0].ft_order_tag in ["derisk_level_3"]):
+  if (context.count_of_exits > 0) and (context.filled_exits[0].ft_order_tag in ["derisk_level_3"]):
     return strategy.short_grind_adjust_trade_position_v2(
       trade,
       enter_tags,
       current_time,
       current_rate,
       current_profit,
-      min_stake,
-      max_stake,
+      context.min_stake,
+      context.max_stake,
       current_entry_rate,
       current_exit_rate,
       current_entry_profit,
       current_exit_profit,
     )
 
-  entry_attempt = try_build_rebuy_entry_attempt(
+  entry_attempt = try_build_rebuy_entry_attempt_from_context(
     strategy,
     trade,
     current_time,
     current_rate,
-    filled_orders,
-    exit_rate,
-    min_stake,
-    max_stake,
-    last_candle,
-    slice_amount,
-    slice_profit_entry,
-    profit_stake,
-    profit_ratio,
-    has_order_tags,
+    context,
     is_short=True,
     use_v3=False,
     entry_allowed=short_rebuy_entry_allowed,
@@ -652,16 +633,11 @@ def short_rebuy_adjust_trade_position(
   if entry_attempt.handled:
     return entry_attempt.adjustment
 
-  derisk_adjustment = try_return_rebuy_derisk_adjustment(
+  derisk_adjustment = try_return_rebuy_derisk_adjustment_from_context(
     strategy,
     trade,
     current_time,
-    exit_rate,
-    min_stake,
-    slice_amount,
-    profit_stake,
-    profit_ratio,
-    has_order_tags,
+    context,
   )
   if derisk_adjustment is not None:
     return derisk_adjustment
@@ -690,32 +666,12 @@ def short_rebuy_adjust_trade_position_v3(
   if context is None:
     return None
 
-  min_stake = context.min_stake
-  max_stake = context.max_stake
-  last_candle = context.last_candle
-  filled_orders = context.filled_orders
-  has_order_tags = context.has_order_tags
-  exit_rate = context.exit_rate
-  profit_stake = context.profit_stake
-  profit_ratio = context.profit_ratio
-  slice_amount = context.slice_amount
-  slice_profit_entry = context.slice_profit_entry
-
-  entry_attempt = try_build_rebuy_entry_attempt(
+  entry_attempt = try_build_rebuy_entry_attempt_from_context(
     strategy,
     trade,
     current_time,
     current_rate,
-    filled_orders,
-    exit_rate,
-    min_stake,
-    max_stake,
-    last_candle,
-    slice_amount,
-    slice_profit_entry,
-    profit_stake,
-    profit_ratio,
-    has_order_tags,
+    context,
     is_short=True,
     use_v3=True,
     entry_allowed=short_rebuy_v3_entry_allowed,
