@@ -3,10 +3,12 @@ from typing import Optional
 
 from freqtrade.persistence import Trade
 
-from nfi_refactor.position.adjustment_detail import (
+from nfi_refactor.position.adjustment_context import (
   build_adjustment_call_context,
   build_adjustment_mode_state,
   get_adjustment_enter_tags,
+)
+from nfi_refactor.position.adjustment_detail import (
   route_long_grind_adjustment,
   route_rebuy_adjustment,
   route_short_grind_adjustment,
