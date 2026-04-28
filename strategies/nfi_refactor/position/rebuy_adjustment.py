@@ -1,6 +1,7 @@
 """Rebuy position-adjustment handlers extracted from NFI."""
 
 import logging
+from dataclasses import dataclass
 from datetime import datetime
 from typing import Optional
 
@@ -8,6 +9,94 @@ from freqtrade.persistence import Trade
 
 
 log = logging.getLogger(__name__)
+
+
+@dataclass
+class RebuyAdjustmentContext:
+  min_stake: float
+  max_stake: float
+  last_candle: object
+  filled_orders: list
+  filled_entries: list
+  filled_exits: list
+  count_of_exits: int
+  has_order_tags: bool
+  exit_rate: float
+  profit_stake: float
+  profit_ratio: float
+  slice_amount: float
+  slice_profit_entry: float
+
+
+def get_rebuy_exit_rate(strategy, trade: Trade, current_rate: float) -> float:
+  exit_rate = current_rate
+  if strategy.dp.runmode.value in ("live", "dry_run"):
+    ticker = strategy.dp.ticker(trade.pair)
+    if ("bid" in ticker) and ("ask" in ticker):
+      if trade.is_short:
+        if strategy.config["exit_pricing"]["price_side"] in ["ask", "other"]:
+          if ticker["ask"] is not None:
+            exit_rate = ticker["ask"]
+      else:
+        if strategy.config["exit_pricing"]["price_side"] in ["bid", "other"]:
+          if ticker["bid"] is not None:
+            exit_rate = ticker["bid"]
+  return exit_rate
+
+
+def build_rebuy_adjustment_context(
+  strategy,
+  trade: Trade,
+  current_rate: float,
+  min_stake: Optional[float],
+  max_stake: float,
+) -> Optional[RebuyAdjustmentContext]:
+  # min/max stakes include leverage. The return amounts is before leverage.
+  min_stake /= trade.leverage
+  max_stake /= trade.leverage
+
+  df, _ = strategy.dp.get_analyzed_dataframe(trade.pair, strategy.timeframe)
+  if len(df) < 2:
+    return None
+  last_candle = df.iloc[-1].squeeze()
+
+  # we already waiting for an order to get filled
+  if trade.has_open_orders:
+    return None
+
+  filled_orders = trade.select_filled_orders()
+  filled_entries = trade.select_filled_orders(trade.entry_side)
+  filled_exits = trade.select_filled_orders(trade.exit_side)
+  count_of_entries = trade.nr_of_successful_entries
+  count_of_exits = trade.nr_of_successful_exits
+
+  if count_of_entries == 0:
+    return None
+
+  has_order_tags = hasattr(filled_orders[0], "ft_order_tag")
+  exit_rate = get_rebuy_exit_rate(strategy, trade, current_rate)
+  profit_stake, profit_ratio, profit_current_stake_ratio, profit_init_ratio = strategy.calc_total_profit(
+    trade, filled_entries, filled_exits, exit_rate
+  )
+  slice_amount = filled_entries[0].cost
+  slice_profit_entry = (exit_rate - filled_entries[-1].safe_price) / filled_entries[-1].safe_price
+
+  return RebuyAdjustmentContext(
+    min_stake=min_stake,
+    max_stake=max_stake,
+    last_candle=last_candle,
+    filled_orders=filled_orders,
+    filled_entries=filled_entries,
+    filled_exits=filled_exits,
+    count_of_exits=count_of_exits,
+    has_order_tags=has_order_tags,
+    exit_rate=exit_rate,
+    profit_stake=profit_stake,
+    profit_ratio=profit_ratio,
+    slice_amount=slice_amount,
+    slice_profit_entry=slice_profit_entry,
+  )
+
 
 def long_rebuy_adjust_trade_position(
   strategy,
@@ -24,31 +113,22 @@ def long_rebuy_adjust_trade_position(
   current_exit_profit: float,
   **kwargs,
 ) -> Optional[float]:
-  # min/max stakes include leverage. The return amounts is before leverage.
-  min_stake /= trade.leverage
-  max_stake /= trade.leverage
-  df, _ = strategy.dp.get_analyzed_dataframe(trade.pair, strategy.timeframe)
-  if len(df) < 2:
-    return None
-  last_candle = df.iloc[-1].squeeze()
-  previous_candle = df.iloc[-2].squeeze()
-
-  # we already waiting for an order to get filled
-  if trade.has_open_orders:
+  context = build_rebuy_adjustment_context(strategy, trade, current_rate, min_stake, max_stake)
+  if context is None:
     return None
 
-  filled_orders = trade.select_filled_orders()
-  filled_entries = trade.select_filled_orders(trade.entry_side)
-  filled_exits = trade.select_filled_orders(trade.exit_side)
-  count_of_entries = trade.nr_of_successful_entries
-  count_of_exits = trade.nr_of_successful_exits
-
-  if count_of_entries == 0:
-    return None
-
-  has_order_tags = False
-  if hasattr(filled_orders[0], "ft_order_tag"):
-    has_order_tags = True
+  min_stake = context.min_stake
+  max_stake = context.max_stake
+  last_candle = context.last_candle
+  filled_orders = context.filled_orders
+  filled_exits = context.filled_exits
+  count_of_exits = context.count_of_exits
+  has_order_tags = context.has_order_tags
+  exit_rate = context.exit_rate
+  profit_stake = context.profit_stake
+  profit_ratio = context.profit_ratio
+  slice_amount = context.slice_amount
+  slice_profit_entry = context.slice_profit_entry
 
   # The first exit is de-risk (providing the trade is still open)
   if (count_of_exits > 0) and (filled_exits[0].ft_order_tag in ["derisk_level_3"]):
@@ -65,32 +145,6 @@ def long_rebuy_adjust_trade_position(
       current_entry_profit,
       current_exit_profit,
     )
-
-  exit_rate = current_rate
-  if strategy.dp.runmode.value in ("live", "dry_run"):
-    ticker = strategy.dp.ticker(trade.pair)
-    if ("bid" in ticker) and ("ask" in ticker):
-      if trade.is_short:
-        if strategy.config["exit_pricing"]["price_side"] in ["ask", "other"]:
-          if ticker["ask"] is not None:
-            exit_rate = ticker["ask"]
-      else:
-        if strategy.config["exit_pricing"]["price_side"] in ["bid", "other"]:
-          if ticker["bid"] is not None:
-            exit_rate = ticker["bid"]
-
-  profit_stake, profit_ratio, profit_current_stake_ratio, profit_init_ratio = strategy.calc_total_profit(
-    trade, filled_entries, filled_exits, exit_rate
-  )
-
-  slice_amount = filled_entries[0].cost
-  slice_profit = (exit_rate - filled_orders[-1].safe_price) / filled_orders[-1].safe_price
-  slice_profit_entry = (exit_rate - filled_entries[-1].safe_price) / filled_entries[-1].safe_price
-  slice_profit_exit = (
-    ((exit_rate - filled_exits[-1].safe_price) / filled_exits[-1].safe_price) if count_of_exits > 0 else 0.0
-  )
-
-  current_stake_amount = trade.amount * current_rate
 
   rebuy_mode_stakes = strategy.rebuy_mode_stakes_futures if strategy.is_futures_mode else strategy.rebuy_mode_stakes_spot
   max_sub_grinds = len(rebuy_mode_stakes)
@@ -212,57 +266,20 @@ def long_rebuy_adjust_trade_position_v3(
   current_exit_profit: float,
   **kwargs,
 ) -> Optional[float]:
-  # min/max stakes include leverage. The return amounts is before leverage.
-  min_stake /= trade.leverage
-  max_stake /= trade.leverage
-  df, _ = strategy.dp.get_analyzed_dataframe(trade.pair, strategy.timeframe)
-  if len(df) < 2:
-    return None
-  last_candle = df.iloc[-1].squeeze()
-  previous_candle = df.iloc[-2].squeeze()
-
-  # we already waiting for an order to get filled
-  if trade.has_open_orders:
+  context = build_rebuy_adjustment_context(strategy, trade, current_rate, min_stake, max_stake)
+  if context is None:
     return None
 
-  filled_orders = trade.select_filled_orders()
-  filled_entries = trade.select_filled_orders(trade.entry_side)
-  filled_exits = trade.select_filled_orders(trade.exit_side)
-  count_of_entries = trade.nr_of_successful_entries
-  count_of_exits = trade.nr_of_successful_exits
-
-  if count_of_entries == 0:
-    return None
-
-  has_order_tags = False
-  if hasattr(filled_orders[0], "ft_order_tag"):
-    has_order_tags = True
-
-  exit_rate = current_rate
-  if strategy.dp.runmode.value in ("live", "dry_run"):
-    ticker = strategy.dp.ticker(trade.pair)
-    if ("bid" in ticker) and ("ask" in ticker):
-      if trade.is_short:
-        if strategy.config["exit_pricing"]["price_side"] in ["ask", "other"]:
-          if ticker["ask"] is not None:
-            exit_rate = ticker["ask"]
-      else:
-        if strategy.config["exit_pricing"]["price_side"] in ["bid", "other"]:
-          if ticker["bid"] is not None:
-            exit_rate = ticker["bid"]
-
-  profit_stake, profit_ratio, profit_current_stake_ratio, profit_init_ratio = strategy.calc_total_profit(
-    trade, filled_entries, filled_exits, exit_rate
-  )
-
-  slice_amount = filled_entries[0].cost
-  slice_profit = (exit_rate - filled_orders[-1].safe_price) / filled_orders[-1].safe_price
-  slice_profit_entry = (exit_rate - filled_entries[-1].safe_price) / filled_entries[-1].safe_price
-  slice_profit_exit = (
-    ((exit_rate - filled_exits[-1].safe_price) / filled_exits[-1].safe_price) if count_of_exits > 0 else 0.0
-  )
-
-  current_stake_amount = trade.amount * current_rate
+  min_stake = context.min_stake
+  max_stake = context.max_stake
+  last_candle = context.last_candle
+  filled_orders = context.filled_orders
+  has_order_tags = context.has_order_tags
+  exit_rate = context.exit_rate
+  profit_stake = context.profit_stake
+  profit_ratio = context.profit_ratio
+  slice_amount = context.slice_amount
+  slice_profit_entry = context.slice_profit_entry
 
   rebuy_mode_stakes = (
     strategy.system_v3_rebuy_mode_stakes_futures if strategy.is_futures_mode else strategy.system_v3_rebuy_mode_stakes_spot
@@ -348,31 +365,22 @@ def short_rebuy_adjust_trade_position(
   current_exit_profit: float,
   **kwargs,
 ) -> Optional[float]:
-  # min/max stakes include leverage. The return amounts is before leverage.
-  min_stake /= trade.leverage
-  max_stake /= trade.leverage
-  df, _ = strategy.dp.get_analyzed_dataframe(trade.pair, strategy.timeframe)
-  if len(df) < 2:
-    return None
-  last_candle = df.iloc[-1].squeeze()
-  previous_candle = df.iloc[-2].squeeze()
-
-  # we already waiting for an order to get filled
-  if trade.has_open_orders:
+  context = build_rebuy_adjustment_context(strategy, trade, current_rate, min_stake, max_stake)
+  if context is None:
     return None
 
-  filled_orders = trade.select_filled_orders()
-  filled_entries = trade.select_filled_orders(trade.entry_side)
-  filled_exits = trade.select_filled_orders(trade.exit_side)
-  count_of_entries = trade.nr_of_successful_entries
-  count_of_exits = trade.nr_of_successful_exits
-
-  if count_of_entries == 0:
-    return None
-
-  has_order_tags = False
-  if hasattr(filled_orders[0], "ft_order_tag"):
-    has_order_tags = True
+  min_stake = context.min_stake
+  max_stake = context.max_stake
+  last_candle = context.last_candle
+  filled_orders = context.filled_orders
+  filled_exits = context.filled_exits
+  count_of_exits = context.count_of_exits
+  has_order_tags = context.has_order_tags
+  exit_rate = context.exit_rate
+  profit_stake = context.profit_stake
+  profit_ratio = context.profit_ratio
+  slice_amount = context.slice_amount
+  slice_profit_entry = context.slice_profit_entry
 
   # The first exit is de-risk (providing the trade is still open)
   if (count_of_exits > 0) and (filled_exits[0].ft_order_tag in ["derisk_level_3"]):
@@ -389,32 +397,6 @@ def short_rebuy_adjust_trade_position(
       current_entry_profit,
       current_exit_profit,
     )
-
-  exit_rate = current_rate
-  if strategy.dp.runmode.value in ("live", "dry_run"):
-    ticker = strategy.dp.ticker(trade.pair)
-    if ("bid" in ticker) and ("ask" in ticker):
-      if trade.is_short:
-        if strategy.config["exit_pricing"]["price_side"] in ["ask", "other"]:
-          if ticker["ask"] is not None:
-            exit_rate = ticker["ask"]
-      else:
-        if strategy.config["exit_pricing"]["price_side"] in ["bid", "other"]:
-          if ticker["bid"] is not None:
-            exit_rate = ticker["bid"]
-
-  profit_stake, profit_ratio, profit_current_stake_ratio, profit_init_ratio = strategy.calc_total_profit(
-    trade, filled_entries, filled_exits, exit_rate
-  )
-
-  slice_amount = filled_entries[0].cost
-  slice_profit = (exit_rate - filled_orders[-1].safe_price) / filled_orders[-1].safe_price
-  slice_profit_entry = (exit_rate - filled_entries[-1].safe_price) / filled_entries[-1].safe_price
-  slice_profit_exit = (
-    ((exit_rate - filled_exits[-1].safe_price) / filled_exits[-1].safe_price) if count_of_exits > 0 else 0.0
-  )
-
-  current_stake_amount = trade.amount * current_rate
 
   rebuy_mode_stakes = strategy.rebuy_mode_stakes_futures if strategy.is_futures_mode else strategy.rebuy_mode_stakes_spot
   max_sub_grinds = len(rebuy_mode_stakes)
@@ -526,57 +508,20 @@ def short_rebuy_adjust_trade_position_v3(
   current_exit_profit: float,
   **kwargs,
 ) -> Optional[float]:
-  # min/max stakes include leverage. The return amounts is before leverage.
-  min_stake /= trade.leverage
-  max_stake /= trade.leverage
-  df, _ = strategy.dp.get_analyzed_dataframe(trade.pair, strategy.timeframe)
-  if len(df) < 2:
-    return None
-  last_candle = df.iloc[-1].squeeze()
-  previous_candle = df.iloc[-2].squeeze()
-
-  # we already waiting for an order to get filled
-  if trade.has_open_orders:
+  context = build_rebuy_adjustment_context(strategy, trade, current_rate, min_stake, max_stake)
+  if context is None:
     return None
 
-  filled_orders = trade.select_filled_orders()
-  filled_entries = trade.select_filled_orders(trade.entry_side)
-  filled_exits = trade.select_filled_orders(trade.exit_side)
-  count_of_entries = trade.nr_of_successful_entries
-  count_of_exits = trade.nr_of_successful_exits
-
-  if count_of_entries == 0:
-    return None
-
-  has_order_tags = False
-  if hasattr(filled_orders[0], "ft_order_tag"):
-    has_order_tags = True
-
-  exit_rate = current_rate
-  if strategy.dp.runmode.value in ("live", "dry_run"):
-    ticker = strategy.dp.ticker(trade.pair)
-    if ("bid" in ticker) and ("ask" in ticker):
-      if trade.is_short:
-        if strategy.config["exit_pricing"]["price_side"] in ["ask", "other"]:
-          if ticker["ask"] is not None:
-            exit_rate = ticker["ask"]
-      else:
-        if strategy.config["exit_pricing"]["price_side"] in ["bid", "other"]:
-          if ticker["bid"] is not None:
-            exit_rate = ticker["bid"]
-
-  profit_stake, profit_ratio, profit_current_stake_ratio, profit_init_ratio = strategy.calc_total_profit(
-    trade, filled_entries, filled_exits, exit_rate
-  )
-
-  slice_amount = filled_entries[0].cost
-  slice_profit = (exit_rate - filled_orders[-1].safe_price) / filled_orders[-1].safe_price
-  slice_profit_entry = (exit_rate - filled_entries[-1].safe_price) / filled_entries[-1].safe_price
-  slice_profit_exit = (
-    ((exit_rate - filled_exits[-1].safe_price) / filled_exits[-1].safe_price) if count_of_exits > 0 else 0.0
-  )
-
-  current_stake_amount = trade.amount * current_rate
+  min_stake = context.min_stake
+  max_stake = context.max_stake
+  last_candle = context.last_candle
+  filled_orders = context.filled_orders
+  has_order_tags = context.has_order_tags
+  exit_rate = context.exit_rate
+  profit_stake = context.profit_stake
+  profit_ratio = context.profit_ratio
+  slice_amount = context.slice_amount
+  slice_profit_entry = context.slice_profit_entry
 
   rebuy_mode_stakes = (
     strategy.system_v3_rebuy_mode_stakes_futures if strategy.is_futures_mode else strategy.system_v3_rebuy_mode_stakes_spot
