@@ -279,6 +279,40 @@ def return_rebuy_entry_adjustment(
   return buy_amount
 
 
+def try_return_rebuy_entry_adjustment(
+  strategy,
+  trade: Trade,
+  current_time: datetime,
+  current_rate: float,
+  slice_amount: float,
+  stake_multiplier: float,
+  min_stake: float,
+  max_stake: float,
+  profit_stake: float,
+  profit_ratio: float,
+  has_order_tags: bool,
+):
+  buy_amount = build_rebuy_entry_amount(
+    slice_amount,
+    stake_multiplier,
+    trade.leverage,
+    min_stake,
+    max_stake,
+  )
+  if buy_amount is None:
+    return None
+  return return_rebuy_entry_adjustment(
+    strategy,
+    trade,
+    current_time,
+    current_rate,
+    buy_amount,
+    profit_stake,
+    profit_ratio,
+    has_order_tags,
+  )
+
+
 def return_rebuy_derisk_adjustment(
   strategy,
   trade: Trade,
@@ -409,21 +443,15 @@ def long_rebuy_adjust_trade_position(
       slice_profit_entry,
       rebuy_mode_config.thresholds[sub_grind_count],
     ):
-      buy_amount = build_rebuy_entry_amount(
-        slice_amount,
-        rebuy_mode_config.stakes[sub_grind_count],
-        trade.leverage,
-        min_stake,
-        max_stake,
-      )
-      if buy_amount is None:
-        return None
-      return return_rebuy_entry_adjustment(
+      return try_return_rebuy_entry_adjustment(
         strategy,
         trade,
         current_time,
         current_rate,
-        buy_amount,
+        slice_amount,
+        rebuy_mode_config.stakes[sub_grind_count],
+        min_stake,
+        max_stake,
         profit_stake,
         profit_ratio,
         has_order_tags,
@@ -499,21 +527,15 @@ def long_rebuy_adjust_trade_position_v3(
       slice_profit_entry,
       rebuy_mode_config.thresholds[sub_grind_count],
     ):
-      buy_amount = build_rebuy_entry_amount(
-        slice_amount,
-        rebuy_mode_config.stakes[sub_grind_count],
-        trade.leverage,
-        min_stake,
-        max_stake,
-      )
-      if buy_amount is None:
-        return None
-      return return_rebuy_entry_adjustment(
+      return try_return_rebuy_entry_adjustment(
         strategy,
         trade,
         current_time,
         current_rate,
-        buy_amount,
+        slice_amount,
+        rebuy_mode_config.stakes[sub_grind_count],
+        min_stake,
+        max_stake,
         profit_stake,
         profit_ratio,
         has_order_tags,
@@ -590,21 +612,15 @@ def short_rebuy_adjust_trade_position(
       slice_profit_entry,
       rebuy_mode_config.thresholds[sub_grind_count],
     ):
-      buy_amount = build_rebuy_entry_amount(
-        slice_amount,
-        rebuy_mode_config.stakes[sub_grind_count],
-        trade.leverage,
-        min_stake,
-        max_stake,
-      )
-      if buy_amount is None:
-        return None
-      return return_rebuy_entry_adjustment(
+      return try_return_rebuy_entry_adjustment(
         strategy,
         trade,
         current_time,
         current_rate,
-        buy_amount,
+        slice_amount,
+        rebuy_mode_config.stakes[sub_grind_count],
+        min_stake,
+        max_stake,
         profit_stake,
         profit_ratio,
         has_order_tags,
@@ -680,21 +696,15 @@ def short_rebuy_adjust_trade_position_v3(
       slice_profit_entry,
       rebuy_mode_config.thresholds[sub_grind_count],
     ):
-      buy_amount = build_rebuy_entry_amount(
-        slice_amount,
-        rebuy_mode_config.stakes[sub_grind_count],
-        trade.leverage,
-        min_stake,
-        max_stake,
-      )
-      if buy_amount is None:
-        return None
-      return return_rebuy_entry_adjustment(
+      return try_return_rebuy_entry_adjustment(
         strategy,
         trade,
         current_time,
         current_rate,
-        buy_amount,
+        slice_amount,
+        rebuy_mode_config.stakes[sub_grind_count],
+        min_stake,
+        max_stake,
         profit_stake,
         profit_ratio,
         has_order_tags,
