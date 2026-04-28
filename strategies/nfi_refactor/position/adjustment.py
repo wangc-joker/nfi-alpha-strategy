@@ -4,8 +4,9 @@ from typing import Optional
 from freqtrade.persistence import Trade
 
 from nfi_refactor.position.adjustment_detail import (
-  AdjustmentCallContext,
-  AdjustmentModeState,
+  build_adjustment_call_context,
+  build_adjustment_mode_state,
+  get_adjustment_enter_tags,
   route_long_grind_adjustment,
   route_rebuy_adjustment,
   route_short_grind_adjustment,
@@ -29,14 +30,8 @@ def adjust_trade_position(
   if strategy.position_adjustment_enable == False:
     return None
 
-  enter_tag = "empty"
-  if hasattr(trade, "enter_tag") and trade.enter_tag is not None:
-    enter_tag = trade.enter_tag
-  enter_tags = enter_tag.split()
-
-  is_backtest = strategy.is_backtest_mode()
-
-  context = AdjustmentCallContext(
+  enter_tags = get_adjustment_enter_tags(trade)
+  context = build_adjustment_call_context(
     trade,
     enter_tags,
     current_time,
@@ -49,15 +44,7 @@ def adjust_trade_position(
     current_entry_profit,
     current_exit_profit,
   )
-  state = AdjustmentModeState(
-    is_long_grind_mode=all(c in strategy.long_grind_mode_tags for c in enter_tags),
-    is_long_btc_mode=all(c in strategy.long_btc_mode_tags for c in enter_tags),
-    is_short_grind_mode=all(c in strategy.short_grind_mode_tags for c in enter_tags),
-    is_v2_date=trade.open_date_utc.replace(tzinfo=None) >= datetime(2025, 2, 13) or is_backtest,
-    is_system_v3_family=strategy.is_system_v3(trade)
-    or strategy.is_system_v3_1(trade)
-    or strategy.is_system_v3_2(trade),
-  )
+  state = build_adjustment_mode_state(strategy, trade, enter_tags)
 
   handled, adjustment = route_rebuy_adjustment(
     strategy,

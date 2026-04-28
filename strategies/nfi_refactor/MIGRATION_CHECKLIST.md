@@ -99,6 +99,7 @@ D:\test\NostalgiaForInfinity\NostalgiaForInfinityX7.py
 - [x] Extract position adjustment detail handlers.
 - [x] Extract position adjustment call context object.
 - [x] Extract position adjustment mode state object.
+- [x] Extract position adjustment context/state builder helpers.
 - [x] Extract rebuy position adjustment handlers.
 - [x] Extract rebuy position adjustment shared context.
 - [x] Extract rebuy position adjustment return helpers.
@@ -140,4 +141,5 @@ Only after parity:
 - [ ] Improve dynamic coin universe.
 - [ ] Revisit short signal quality.
 - [ ] Tune stake sizing and max open trades.
+
 
