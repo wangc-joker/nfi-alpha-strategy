@@ -62,6 +62,7 @@ D:\test\NostalgiaForInfinity\NostalgiaForInfinityX7.py
 - [x] Extract custom stake amount.
 - [x] Extract leverage.
 - [x] Extract and split custom exit orchestration.
+- [x] Extract shared custom exit reason formatter.
 - [x] Extract confirm_trade_exit.
 - [x] Extract and split profit target marker helper.
 - [x] Extract and split profit target exit decision helper.

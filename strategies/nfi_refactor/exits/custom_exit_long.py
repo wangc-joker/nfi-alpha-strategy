@@ -1,5 +1,7 @@
 """Long-side custom exit routing extracted from NFI."""
 
+from nfi_refactor.exits.custom_exit_result import format_exit_reason
+
 
 def route_long_custom_exit(
   strategy,
@@ -27,7 +29,7 @@ def route_long_custom_exit(
 
   # Long Normal mode
   if any(c in strategy.long_normal_mode_tags for c in enter_tags):
-    sell, signal_name = strategy.long_exit_normal(
+    exit_reason = format_exit_reason(strategy.long_exit_normal(
       pair,
       current_rate,
       profit_stake,
@@ -47,13 +49,13 @@ def route_long_custom_exit(
       trade,
       current_time,
       enter_tags,
-    )
-    if sell and (signal_name is not None):
-      return f"{signal_name} ( {enter_tag})"
+    ), enter_tag)
+    if exit_reason is not None:
+      return exit_reason
 
   # Long Pump mode
   if any(c in strategy.long_pump_mode_tags for c in enter_tags):
-    sell, signal_name = strategy.long_exit_pump(
+    exit_reason = format_exit_reason(strategy.long_exit_pump(
       pair,
       current_rate,
       profit_stake,
@@ -73,13 +75,13 @@ def route_long_custom_exit(
       trade,
       current_time,
       enter_tags,
-    )
-    if sell and (signal_name is not None):
-      return f"{signal_name} ( {enter_tag})"
+    ), enter_tag)
+    if exit_reason is not None:
+      return exit_reason
 
   # Long Quick mode
   if any(c in strategy.long_quick_mode_tags for c in enter_tags):
-    sell, signal_name = strategy.long_exit_quick(
+    exit_reason = format_exit_reason(strategy.long_exit_quick(
       pair,
       current_rate,
       profit_stake,
@@ -99,16 +101,16 @@ def route_long_custom_exit(
       trade,
       current_time,
       enter_tags,
-    )
-    if sell and (signal_name is not None):
-      return f"{signal_name} ( {enter_tag})"
+    ), enter_tag)
+    if exit_reason is not None:
+      return exit_reason
 
   # Long Rebuy mode
   if all(c in strategy.long_rebuy_mode_tags for c in enter_tags) or (
     any(c in strategy.long_rebuy_mode_tags for c in enter_tags)
     and all(c in (strategy.long_rebuy_mode_tags + strategy.long_grind_mode_tags) for c in enter_tags)
   ):
-    sell, signal_name = strategy.long_exit_rebuy(
+    exit_reason = format_exit_reason(strategy.long_exit_rebuy(
       pair,
       current_rate,
       profit_stake,
@@ -128,13 +130,13 @@ def route_long_custom_exit(
       trade,
       current_time,
       enter_tags,
-    )
-    if sell and (signal_name is not None):
-      return f"{signal_name} ( {enter_tag})"
+    ), enter_tag)
+    if exit_reason is not None:
+      return exit_reason
 
   # Long high profit mode
   if any(c in strategy.long_high_profit_mode_tags for c in enter_tags):
-    sell, signal_name = strategy.long_exit_high_profit(
+    exit_reason = format_exit_reason(strategy.long_exit_high_profit(
       pair,
       current_rate,
       profit_stake,
@@ -154,9 +156,9 @@ def route_long_custom_exit(
       trade,
       current_time,
       enter_tags,
-    )
-    if sell and (signal_name is not None):
-      return f"{signal_name} ( {enter_tag})"
+    ), enter_tag)
+    if exit_reason is not None:
+      return exit_reason
 
   # Long rapid mode
   if all(c in strategy.long_rapid_mode_tags for c in enter_tags) or (
@@ -169,7 +171,7 @@ def route_long_custom_exit(
       for c in enter_tags
     )
   ):
-    sell, signal_name = strategy.long_exit_rapid(
+    exit_reason = format_exit_reason(strategy.long_exit_rapid(
       pair,
       current_rate,
       profit_stake,
@@ -189,13 +191,13 @@ def route_long_custom_exit(
       trade,
       current_time,
       enter_tags,
-    )
-    if sell and (signal_name is not None):
-      return f"{signal_name} ( {enter_tag})"
+    ), enter_tag)
+    if exit_reason is not None:
+      return exit_reason
 
   # Long grind mode
   if all(c in strategy.long_grind_mode_tags for c in enter_tags):
-    sell, signal_name = strategy.long_exit_grind(
+    exit_reason = format_exit_reason(strategy.long_exit_grind(
       pair,
       current_rate,
       profit_stake,
@@ -215,13 +217,13 @@ def route_long_custom_exit(
       trade,
       current_time,
       enter_tags,
-    )
-    if sell and (signal_name is not None):
-      return f"{signal_name} ( {enter_tag})"
+    ), enter_tag)
+    if exit_reason is not None:
+      return exit_reason
 
   # Long btc mode
   if all(c in strategy.long_btc_mode_tags for c in enter_tags):
-    sell, signal_name = strategy.long_exit_btc(
+    exit_reason = format_exit_reason(strategy.long_exit_btc(
       pair,
       current_rate,
       profit_stake,
@@ -241,13 +243,13 @@ def route_long_custom_exit(
       trade,
       current_time,
       enter_tags,
-    )
-    if sell and (signal_name is not None):
-      return f"{signal_name} ( {enter_tag})"
+    ), enter_tag)
+    if exit_reason is not None:
+      return exit_reason
 
   # Long Top Coins mode
   if any(c in strategy.long_top_coins_mode_tags for c in enter_tags):
-    sell, signal_name = strategy.long_exit_top_coins(
+    exit_reason = format_exit_reason(strategy.long_exit_top_coins(
       pair,
       current_rate,
       profit_stake,
@@ -267,9 +269,9 @@ def route_long_custom_exit(
       trade,
       current_time,
       enter_tags,
-    )
-    if sell and (signal_name is not None):
-      return f"{signal_name} ( {enter_tag})"
+    ), enter_tag)
+    if exit_reason is not None:
+      return exit_reason
 
   # Long scalp mode
   if all(c in strategy.long_scalp_mode_tags for c in enter_tags) or (
@@ -278,7 +280,7 @@ def route_long_custom_exit(
       c in (strategy.long_scalp_mode_tags + strategy.long_rebuy_mode_tags + strategy.long_grind_mode_tags) for c in enter_tags
     )
   ):
-    sell, signal_name = strategy.long_exit_scalp(
+    exit_reason = format_exit_reason(strategy.long_exit_scalp(
       pair,
       current_rate,
       profit_stake,
@@ -298,6 +300,6 @@ def route_long_custom_exit(
       trade,
       current_time,
       enter_tags,
-    )
-    if sell and (signal_name is not None):
-      return f"{signal_name} ( {enter_tag})"
+    ), enter_tag)
+    if exit_reason is not None:
+      return exit_reason

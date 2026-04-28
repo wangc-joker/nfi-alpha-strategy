@@ -1,5 +1,7 @@
 """Short-side custom exit routing extracted from NFI."""
 
+from nfi_refactor.exits.custom_exit_result import format_exit_reason
+
 
 def route_short_custom_exit(
   strategy,
@@ -27,7 +29,7 @@ def route_short_custom_exit(
 
   # Short normal mode
   if any(c in strategy.short_normal_mode_tags for c in enter_tags):
-    sell, signal_name = strategy.short_exit_normal(
+    exit_reason = format_exit_reason(strategy.short_exit_normal(
       pair,
       current_rate,
       profit_stake,
@@ -47,13 +49,13 @@ def route_short_custom_exit(
       trade,
       current_time,
       enter_tags,
-    )
-    if sell and (signal_name is not None):
-      return f"{signal_name} ( {enter_tag})"
+    ), enter_tag)
+    if exit_reason is not None:
+      return exit_reason
 
   # Short Pump mode
   if any(c in strategy.short_pump_mode_tags for c in enter_tags):
-    sell, signal_name = strategy.short_exit_pump(
+    exit_reason = format_exit_reason(strategy.short_exit_pump(
       pair,
       current_rate,
       profit_stake,
@@ -73,13 +75,13 @@ def route_short_custom_exit(
       trade,
       current_time,
       enter_tags,
-    )
-    if sell and (signal_name is not None):
-      return f"{signal_name} ( {enter_tag})"
+    ), enter_tag)
+    if exit_reason is not None:
+      return exit_reason
 
   # Short Quick mode
   if any(c in strategy.short_quick_mode_tags for c in enter_tags):
-    sell, signal_name = strategy.short_exit_quick(
+    exit_reason = format_exit_reason(strategy.short_exit_quick(
       pair,
       current_rate,
       profit_stake,
@@ -99,13 +101,13 @@ def route_short_custom_exit(
       trade,
       current_time,
       enter_tags,
-    )
-    if sell and (signal_name is not None):
-      return f"{signal_name} ( {enter_tag})"
+    ), enter_tag)
+    if exit_reason is not None:
+      return exit_reason
 
   # Short Rebuy mode
   if all(c in strategy.short_rebuy_mode_tags for c in enter_tags):
-    sell, signal_name = strategy.short_exit_rebuy(
+    exit_reason = format_exit_reason(strategy.short_exit_rebuy(
       pair,
       current_rate,
       profit_stake,
@@ -125,13 +127,13 @@ def route_short_custom_exit(
       trade,
       current_time,
       enter_tags,
-    )
-    if sell and (signal_name is not None):
-      return f"{signal_name} ( {enter_tag})"
+    ), enter_tag)
+    if exit_reason is not None:
+      return exit_reason
 
   # Short high profit mode
   if any(c in strategy.short_high_profit_mode_tags for c in enter_tags):
-    sell, signal_name = strategy.short_exit_high_profit(
+    exit_reason = format_exit_reason(strategy.short_exit_high_profit(
       pair,
       current_rate,
       profit_stake,
@@ -151,13 +153,13 @@ def route_short_custom_exit(
       trade,
       current_time,
       enter_tags,
-    )
-    if sell and (signal_name is not None):
-      return f"{signal_name} ( {enter_tag})"
+    ), enter_tag)
+    if exit_reason is not None:
+      return exit_reason
 
   # Short rapid mode
   if any(c in strategy.short_rapid_mode_tags for c in enter_tags):
-    sell, signal_name = strategy.short_exit_rapid(
+    exit_reason = format_exit_reason(strategy.short_exit_rapid(
       pair,
       current_rate,
       profit_stake,
@@ -177,9 +179,9 @@ def route_short_custom_exit(
       trade,
       current_time,
       enter_tags,
-    )
-    if sell and (signal_name is not None):
-      return f"{signal_name} ( {enter_tag})"
+    ), enter_tag)
+    if exit_reason is not None:
+      return exit_reason
 
   # Short scalp mode
   if all(c in strategy.short_scalp_mode_tags for c in enter_tags) or (
@@ -188,7 +190,7 @@ def route_short_custom_exit(
       c in (strategy.short_scalp_mode_tags + strategy.short_rebuy_mode_tags + strategy.short_grind_mode_tags) for c in enter_tags
     )
   ):
-    sell, signal_name = strategy.short_exit_scalp(
+    exit_reason = format_exit_reason(strategy.short_exit_scalp(
       pair,
       current_rate,
       profit_stake,
@@ -208,9 +210,9 @@ def route_short_custom_exit(
       trade,
       current_time,
       enter_tags,
-    )
-    if sell and (signal_name is not None):
-      return f"{signal_name} ( {enter_tag})"
+    ), enter_tag)
+    if exit_reason is not None:
+      return exit_reason
 
   # Trades not opened by X7
   if not trade.is_short and (
@@ -232,7 +234,7 @@ def route_short_custom_exit(
     )
   ):
     # use normal mode for such trades
-    sell, signal_name = strategy.long_exit_normal(
+    exit_reason = format_exit_reason(strategy.long_exit_normal(
       pair,
       current_rate,
       profit_stake,
@@ -252,9 +254,9 @@ def route_short_custom_exit(
       trade,
       current_time,
       enter_tags,
-    )
-    if sell and (signal_name is not None):
-      return f"{signal_name} ( {enter_tag})"
+    ), enter_tag)
+    if exit_reason is not None:
+      return exit_reason
 
   # Trades not opened by X7
   if trade.is_short and (
@@ -274,7 +276,7 @@ def route_short_custom_exit(
     )
   ):
     # use normal mode for such trades
-    sell, signal_name = strategy.short_exit_normal(
+    exit_reason = format_exit_reason(strategy.short_exit_normal(
       pair,
       current_rate,
       profit_stake,
@@ -294,7 +296,7 @@ def route_short_custom_exit(
       trade,
       current_time,
       enter_tags,
-    )
-    if sell and (signal_name is not None):
-      return f"{signal_name} ( {enter_tag})"
+    ), enter_tag)
+    if exit_reason is not None:
+      return exit_reason
 
