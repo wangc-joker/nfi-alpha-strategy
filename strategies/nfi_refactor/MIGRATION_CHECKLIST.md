@@ -98,6 +98,7 @@ D:\test\NostalgiaForInfinity\NostalgiaForInfinityX7.py
 - [x] Split position adjustment helper predicates into long/short modules.
 - [x] Extract position adjustment detail handlers.
 - [x] Extract position adjustment call context object.
+- [x] Extract position adjustment mode state object.
 - [x] Extract rebuy position adjustment handlers.
 - [x] Extract rebuy position adjustment shared context.
 - [x] Extract rebuy position adjustment return helpers.

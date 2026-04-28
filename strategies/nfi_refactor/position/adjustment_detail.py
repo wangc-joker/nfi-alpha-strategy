@@ -18,6 +18,15 @@ class AdjustmentCallContext:
   current_exit_profit: float
 
 
+@dataclass
+class AdjustmentModeState:
+  is_long_grind_mode: bool
+  is_long_btc_mode: bool
+  is_short_grind_mode: bool
+  is_v2_date: bool
+  is_system_v3_family: bool
+
+
 def call_adjustment_handler(adjustment_func, context: AdjustmentCallContext):
   return adjustment_func(
     context.trade,
@@ -112,14 +121,22 @@ def matches_short_grind_adjustment_v2_or_v3(strategy, enter_tags):
 def route_rebuy_adjustment(
   strategy,
   context: AdjustmentCallContext,
-  is_system_v3_family,
+  state: AdjustmentModeState,
 ):
   if not context.trade.is_short and matches_long_rebuy_adjustment(strategy, context.enter_tags):
-    adjustment_func = strategy.long_rebuy_adjust_trade_position_v3 if is_system_v3_family else strategy.long_rebuy_adjust_trade_position
+    adjustment_func = (
+      strategy.long_rebuy_adjust_trade_position_v3
+      if state.is_system_v3_family
+      else strategy.long_rebuy_adjust_trade_position
+    )
     return True, call_adjustment_handler(adjustment_func, context)
 
   if context.trade.is_short and matches_short_rebuy_adjustment(strategy, context.enter_tags):
-    adjustment_func = strategy.short_rebuy_adjust_trade_position_v3 if is_system_v3_family else strategy.short_rebuy_adjust_trade_position
+    adjustment_func = (
+      strategy.short_rebuy_adjust_trade_position_v3
+      if state.is_system_v3_family
+      else strategy.short_rebuy_adjust_trade_position
+    )
     return True, call_adjustment_handler(adjustment_func, context)
 
   return False, None
@@ -128,15 +145,12 @@ def route_rebuy_adjustment(
 def route_long_grind_adjustment(
   strategy,
   context: AdjustmentCallContext,
-  is_long_grind_mode,
-  is_long_btc_mode,
-  is_v2_date,
-  is_system_v3_family,
+  state: AdjustmentModeState,
 ):
-  if not is_long_grind_mode and not is_long_btc_mode and is_system_v3_family:
+  if not state.is_long_grind_mode and not state.is_long_btc_mode and state.is_system_v3_family:
     if matches_long_grind_adjustment_v2_or_v3(strategy, context.enter_tags):
       return call_adjustment_handler(strategy.long_grind_adjust_trade_position_v3, context)
-  elif is_long_grind_mode or is_long_btc_mode or not is_v2_date:
+  elif state.is_long_grind_mode or state.is_long_btc_mode or not state.is_v2_date:
     return call_adjustment_handler(strategy.long_grind_adjust_trade_position, context)
   elif matches_long_grind_adjustment_v2_or_v3(strategy, context.enter_tags):
     return call_adjustment_handler(strategy.long_grind_adjust_trade_position_v2, context)
@@ -147,14 +161,12 @@ def route_long_grind_adjustment(
 def route_short_grind_adjustment(
   strategy,
   context: AdjustmentCallContext,
-  is_short_grind_mode,
-  is_v2_date,
-  is_system_v3_family,
+  state: AdjustmentModeState,
 ):
-  if not is_short_grind_mode and is_system_v3_family:
+  if not state.is_short_grind_mode and state.is_system_v3_family:
     if matches_short_grind_adjustment_v2_or_v3(strategy, context.enter_tags):
       return call_adjustment_handler(strategy.short_grind_adjust_trade_position_v3, context)
-  elif is_short_grind_mode or not is_v2_date:
+  elif state.is_short_grind_mode or not state.is_v2_date:
     return call_adjustment_handler(strategy.short_grind_adjust_trade_position, context)
   elif matches_short_grind_adjustment_v2_or_v3(strategy, context.enter_tags):
     return call_adjustment_handler(strategy.short_grind_adjust_trade_position_v2, context)
