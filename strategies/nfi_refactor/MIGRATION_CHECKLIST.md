@@ -105,6 +105,7 @@ D:\test\NostalgiaForInfinity\NostalgiaForInfinityX7.py
 - [x] Extract rebuy position adjustment entry predicate helpers.
 - [x] Extract rebuy position adjustment mode config and order-side helpers.
 - [x] Extract rebuy position adjustment entry return helper.
+- [x] Extract rebuy position adjustment entry attempt helper.
 - [x] Extract confirm_trade_entry and mode entry guards.
 - [x] Extract runtime mode/state helper methods.
 - [x] Extract ticker timeframe helper.

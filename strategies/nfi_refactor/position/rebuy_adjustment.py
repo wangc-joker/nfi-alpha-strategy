@@ -45,6 +45,12 @@ class RebuyModeConfig:
   thresholds: list
 
 
+@dataclass
+class RebuyEntryAttempt:
+  handled: bool
+  adjustment: object
+
+
 def get_rebuy_exit_rate(strategy, trade: Trade, current_rate: float) -> float:
   exit_rate = current_rate
   if strategy.dp.runmode.value in ("live", "dry_run"):
@@ -313,6 +319,65 @@ def try_return_rebuy_entry_adjustment(
   )
 
 
+def try_build_rebuy_entry_attempt(
+  strategy,
+  trade: Trade,
+  current_time: datetime,
+  current_rate: float,
+  filled_orders: list,
+  exit_rate: float,
+  min_stake: float,
+  max_stake: float,
+  last_candle,
+  slice_amount: float,
+  slice_profit_entry: float,
+  profit_stake: float,
+  profit_ratio: float,
+  has_order_tags: bool,
+  is_short: bool,
+  use_v3: bool,
+  entry_allowed,
+) -> RebuyEntryAttempt:
+  rebuy_mode_config = get_rebuy_mode_config(strategy, use_v3=use_v3)
+  max_sub_grinds = len(rebuy_mode_config.stakes)
+  sub_entry_side, partial_exit_side = get_rebuy_sub_grind_order_sides(is_short=is_short)
+  sub_grind_state = build_rebuy_sub_grind_state(
+    strategy,
+    trade,
+    filled_orders,
+    exit_rate,
+    min_stake,
+    sub_entry_side=sub_entry_side,
+    partial_exit_side=partial_exit_side,
+  )
+  sub_grind_count = sub_grind_state.sub_grind_count
+
+  if not is_rebuy_slot_available(sub_grind_state.partial_sell, sub_grind_count, max_sub_grinds):
+    return RebuyEntryAttempt(handled=False, adjustment=None)
+
+  if not entry_allowed(
+    last_candle,
+    slice_profit_entry,
+    rebuy_mode_config.thresholds[sub_grind_count],
+  ):
+    return RebuyEntryAttempt(handled=False, adjustment=None)
+
+  adjustment = try_return_rebuy_entry_adjustment(
+    strategy,
+    trade,
+    current_time,
+    current_rate,
+    slice_amount,
+    rebuy_mode_config.stakes[sub_grind_count],
+    min_stake,
+    max_stake,
+    profit_stake,
+    profit_ratio,
+    has_order_tags,
+  )
+  return RebuyEntryAttempt(handled=True, adjustment=adjustment)
+
+
 def return_rebuy_derisk_adjustment(
   strategy,
   trade: Trade,
@@ -422,40 +487,27 @@ def long_rebuy_adjust_trade_position(
       current_exit_profit,
     )
 
-  rebuy_mode_config = get_rebuy_mode_config(strategy)
-  max_sub_grinds = len(rebuy_mode_config.stakes)
-  sub_entry_side, partial_exit_side = get_rebuy_sub_grind_order_sides(is_short=False)
-  sub_grind_state = build_rebuy_sub_grind_state(
+  entry_attempt = try_build_rebuy_entry_attempt(
     strategy,
     trade,
+    current_time,
+    current_rate,
     filled_orders,
     exit_rate,
     min_stake,
-    sub_entry_side=sub_entry_side,
-    partial_exit_side=partial_exit_side,
+    max_stake,
+    last_candle,
+    slice_amount,
+    slice_profit_entry,
+    profit_stake,
+    profit_ratio,
+    has_order_tags,
+    is_short=False,
+    use_v3=False,
+    entry_allowed=long_rebuy_entry_allowed,
   )
-  partial_sell = sub_grind_state.partial_sell
-  sub_grind_count = sub_grind_state.sub_grind_count
-
-  if is_rebuy_slot_available(partial_sell, sub_grind_count, max_sub_grinds):
-    if long_rebuy_entry_allowed(
-      last_candle,
-      slice_profit_entry,
-      rebuy_mode_config.thresholds[sub_grind_count],
-    ):
-      return try_return_rebuy_entry_adjustment(
-        strategy,
-        trade,
-        current_time,
-        current_rate,
-        slice_amount,
-        rebuy_mode_config.stakes[sub_grind_count],
-        min_stake,
-        max_stake,
-        profit_stake,
-        profit_ratio,
-        has_order_tags,
-      )
+  if entry_attempt.handled:
+    return entry_attempt.adjustment
 
   derisk_adjustment = try_return_rebuy_derisk_adjustment(
     strategy,
@@ -506,40 +558,27 @@ def long_rebuy_adjust_trade_position_v3(
   slice_amount = context.slice_amount
   slice_profit_entry = context.slice_profit_entry
 
-  rebuy_mode_config = get_rebuy_mode_config(strategy, use_v3=True)
-  max_sub_grinds = len(rebuy_mode_config.stakes)
-  sub_entry_side, partial_exit_side = get_rebuy_sub_grind_order_sides(is_short=False)
-  sub_grind_state = build_rebuy_sub_grind_state(
+  entry_attempt = try_build_rebuy_entry_attempt(
     strategy,
     trade,
+    current_time,
+    current_rate,
     filled_orders,
     exit_rate,
     min_stake,
-    sub_entry_side=sub_entry_side,
-    partial_exit_side=partial_exit_side,
+    max_stake,
+    last_candle,
+    slice_amount,
+    slice_profit_entry,
+    profit_stake,
+    profit_ratio,
+    has_order_tags,
+    is_short=False,
+    use_v3=True,
+    entry_allowed=long_rebuy_v3_entry_allowed,
   )
-  partial_sell = sub_grind_state.partial_sell
-  sub_grind_count = sub_grind_state.sub_grind_count
-
-  if is_rebuy_slot_available(partial_sell, sub_grind_count, max_sub_grinds):
-    if long_rebuy_v3_entry_allowed(
-      last_candle,
-      slice_profit_entry,
-      rebuy_mode_config.thresholds[sub_grind_count],
-    ):
-      return try_return_rebuy_entry_adjustment(
-        strategy,
-        trade,
-        current_time,
-        current_rate,
-        slice_amount,
-        rebuy_mode_config.stakes[sub_grind_count],
-        min_stake,
-        max_stake,
-        profit_stake,
-        profit_ratio,
-        has_order_tags,
-      )
+  if entry_attempt.handled:
+    return entry_attempt.adjustment
 
   return None
 
@@ -591,40 +630,27 @@ def short_rebuy_adjust_trade_position(
       current_exit_profit,
     )
 
-  rebuy_mode_config = get_rebuy_mode_config(strategy)
-  max_sub_grinds = len(rebuy_mode_config.stakes)
-  sub_entry_side, partial_exit_side = get_rebuy_sub_grind_order_sides(is_short=True)
-  sub_grind_state = build_rebuy_sub_grind_state(
+  entry_attempt = try_build_rebuy_entry_attempt(
     strategy,
     trade,
+    current_time,
+    current_rate,
     filled_orders,
     exit_rate,
     min_stake,
-    sub_entry_side=sub_entry_side,
-    partial_exit_side=partial_exit_side,
+    max_stake,
+    last_candle,
+    slice_amount,
+    slice_profit_entry,
+    profit_stake,
+    profit_ratio,
+    has_order_tags,
+    is_short=True,
+    use_v3=False,
+    entry_allowed=short_rebuy_entry_allowed,
   )
-  partial_sell = sub_grind_state.partial_sell
-  sub_grind_count = sub_grind_state.sub_grind_count
-
-  if is_rebuy_slot_available(partial_sell, sub_grind_count, max_sub_grinds):
-    if short_rebuy_entry_allowed(
-      last_candle,
-      slice_profit_entry,
-      rebuy_mode_config.thresholds[sub_grind_count],
-    ):
-      return try_return_rebuy_entry_adjustment(
-        strategy,
-        trade,
-        current_time,
-        current_rate,
-        slice_amount,
-        rebuy_mode_config.stakes[sub_grind_count],
-        min_stake,
-        max_stake,
-        profit_stake,
-        profit_ratio,
-        has_order_tags,
-      )
+  if entry_attempt.handled:
+    return entry_attempt.adjustment
 
   derisk_adjustment = try_return_rebuy_derisk_adjustment(
     strategy,
@@ -675,40 +701,27 @@ def short_rebuy_adjust_trade_position_v3(
   slice_amount = context.slice_amount
   slice_profit_entry = context.slice_profit_entry
 
-  rebuy_mode_config = get_rebuy_mode_config(strategy, use_v3=True)
-  max_sub_grinds = len(rebuy_mode_config.stakes)
-  sub_entry_side, partial_exit_side = get_rebuy_sub_grind_order_sides(is_short=True)
-  sub_grind_state = build_rebuy_sub_grind_state(
+  entry_attempt = try_build_rebuy_entry_attempt(
     strategy,
     trade,
+    current_time,
+    current_rate,
     filled_orders,
     exit_rate,
     min_stake,
-    sub_entry_side=sub_entry_side,
-    partial_exit_side=partial_exit_side,
+    max_stake,
+    last_candle,
+    slice_amount,
+    slice_profit_entry,
+    profit_stake,
+    profit_ratio,
+    has_order_tags,
+    is_short=True,
+    use_v3=True,
+    entry_allowed=short_rebuy_v3_entry_allowed,
   )
-  partial_sell = sub_grind_state.partial_sell
-  sub_grind_count = sub_grind_state.sub_grind_count
-
-  if is_rebuy_slot_available(partial_sell, sub_grind_count, max_sub_grinds):
-    if short_rebuy_v3_entry_allowed(
-      last_candle,
-      slice_profit_entry,
-      rebuy_mode_config.thresholds[sub_grind_count],
-    ):
-      return try_return_rebuy_entry_adjustment(
-        strategy,
-        trade,
-        current_time,
-        current_rate,
-        slice_amount,
-        rebuy_mode_config.stakes[sub_grind_count],
-        min_stake,
-        max_stake,
-        profit_stake,
-        profit_ratio,
-        has_order_tags,
-      )
+  if entry_attempt.handled:
+    return entry_attempt.adjustment
 
   return None
 
