@@ -4,6 +4,7 @@ from typing import Optional
 from freqtrade.persistence import Trade
 
 from nfi_refactor.position.adjustment_detail import (
+  AdjustmentCallContext,
   route_long_grind_adjustment,
   route_rebuy_adjustment,
   route_short_grind_adjustment,
@@ -39,8 +40,7 @@ def adjust_trade_position(
   is_v2_date = trade.open_date_utc.replace(tzinfo=None) >= datetime(2025, 2, 13) or is_backtest
   is_system_v3_family = strategy.is_system_v3(trade) or strategy.is_system_v3_1(trade) or strategy.is_system_v3_2(trade)
 
-  handled, adjustment = route_rebuy_adjustment(
-    strategy,
+  context = AdjustmentCallContext(
     trade,
     enter_tags,
     current_time,
@@ -52,6 +52,11 @@ def adjust_trade_position(
     current_exit_rate,
     current_entry_profit,
     current_exit_profit,
+  )
+
+  handled, adjustment = route_rebuy_adjustment(
+    strategy,
+    context,
     is_system_v3_family,
   )
   if handled:
@@ -60,17 +65,7 @@ def adjust_trade_position(
   if not trade.is_short:
     return route_long_grind_adjustment(
       strategy,
-      trade,
-      enter_tags,
-      current_time,
-      current_rate,
-      current_profit,
-      min_stake,
-      max_stake,
-      current_entry_rate,
-      current_exit_rate,
-      current_entry_profit,
-      current_exit_profit,
+      context,
       is_long_grind_mode,
       is_long_btc_mode,
       is_v2_date,
@@ -80,17 +75,7 @@ def adjust_trade_position(
   if trade.is_short:
     return route_short_grind_adjustment(
       strategy,
-      trade,
-      enter_tags,
-      current_time,
-      current_rate,
-      current_profit,
-      min_stake,
-      max_stake,
-      current_entry_rate,
-      current_exit_rate,
-      current_entry_profit,
-      current_exit_profit,
+      context,
       is_short_grind_mode,
       is_v2_date,
       is_system_v3_family,
