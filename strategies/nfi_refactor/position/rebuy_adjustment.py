@@ -527,6 +527,73 @@ def return_rebuy_grind_v2_after_derisk(
   )
 
 
+def run_rebuy_adjust_trade_position(
+  strategy,
+  trade: Trade,
+  enter_tags,
+  current_time: datetime,
+  current_rate: float,
+  current_profit: float,
+  min_stake: Optional[float],
+  max_stake: float,
+  current_entry_rate: float,
+  current_exit_rate: float,
+  current_entry_profit: float,
+  current_exit_profit: float,
+  is_short: bool,
+  use_v3: bool,
+  entry_allowed,
+  allow_derisk: bool,
+) -> Optional[float]:
+  context = build_rebuy_adjustment_context(strategy, trade, current_rate, min_stake, max_stake)
+  if context is None:
+    return None
+
+  # The first exit is de-risk (providing the trade is still open)
+  if allow_derisk and has_rebuy_derisk_exit(context):
+    return return_rebuy_grind_v2_after_derisk(
+      strategy,
+      trade,
+      enter_tags,
+      current_time,
+      current_rate,
+      current_profit,
+      current_entry_rate,
+      current_exit_rate,
+      current_entry_profit,
+      current_exit_profit,
+      context,
+      is_short=is_short,
+    )
+
+  entry_attempt = try_build_rebuy_entry_attempt_from_context(
+    strategy,
+    trade,
+    current_time,
+    current_rate,
+    context,
+    is_short=is_short,
+    use_v3=use_v3,
+    entry_allowed=entry_allowed,
+  )
+  if entry_attempt.handled:
+    return entry_attempt.adjustment
+
+  if not allow_derisk:
+    return None
+
+  derisk_adjustment = try_return_rebuy_derisk_adjustment_from_context(
+    strategy,
+    trade,
+    current_time,
+    context,
+  )
+  if derisk_adjustment is not None:
+    return derisk_adjustment
+
+  return None
+
+
 def long_rebuy_adjust_trade_position(
   strategy,
   trade: Trade,
@@ -542,50 +609,24 @@ def long_rebuy_adjust_trade_position(
   current_exit_profit: float,
   **kwargs,
 ) -> Optional[float]:
-  context = build_rebuy_adjustment_context(strategy, trade, current_rate, min_stake, max_stake)
-  if context is None:
-    return None
-
-  # The first exit is de-risk (providing the trade is still open)
-  if has_rebuy_derisk_exit(context):
-    return return_rebuy_grind_v2_after_derisk(
-      strategy,
-      trade,
-      enter_tags,
-      current_time,
-      current_rate,
-      current_profit,
-      current_entry_rate,
-      current_exit_rate,
-      current_entry_profit,
-      current_exit_profit,
-      context,
-      is_short=False,
-    )
-
-  entry_attempt = try_build_rebuy_entry_attempt_from_context(
+  return run_rebuy_adjust_trade_position(
     strategy,
     trade,
+    enter_tags,
     current_time,
     current_rate,
-    context,
+    current_profit,
+    min_stake,
+    max_stake,
+    current_entry_rate,
+    current_exit_rate,
+    current_entry_profit,
+    current_exit_profit,
     is_short=False,
     use_v3=False,
     entry_allowed=long_rebuy_entry_allowed,
+    allow_derisk=True,
   )
-  if entry_attempt.handled:
-    return entry_attempt.adjustment
-
-  derisk_adjustment = try_return_rebuy_derisk_adjustment_from_context(
-    strategy,
-    trade,
-    current_time,
-    context,
-  )
-  if derisk_adjustment is not None:
-    return derisk_adjustment
-
-  return None
 
 # Long Rebuy Adjust Trade Position v3
 # ---------------------------------------------------------------------------------------------
@@ -605,24 +646,24 @@ def long_rebuy_adjust_trade_position_v3(
   current_exit_profit: float,
   **kwargs,
 ) -> Optional[float]:
-  context = build_rebuy_adjustment_context(strategy, trade, current_rate, min_stake, max_stake)
-  if context is None:
-    return None
-
-  entry_attempt = try_build_rebuy_entry_attempt_from_context(
+  return run_rebuy_adjust_trade_position(
     strategy,
     trade,
+    enter_tags,
     current_time,
     current_rate,
-    context,
+    current_profit,
+    min_stake,
+    max_stake,
+    current_entry_rate,
+    current_exit_rate,
+    current_entry_profit,
+    current_exit_profit,
     is_short=False,
     use_v3=True,
     entry_allowed=long_rebuy_v3_entry_allowed,
+    allow_derisk=False,
   )
-  if entry_attempt.handled:
-    return entry_attempt.adjustment
-
-  return None
 
 def short_rebuy_adjust_trade_position(
   strategy,
@@ -639,50 +680,24 @@ def short_rebuy_adjust_trade_position(
   current_exit_profit: float,
   **kwargs,
 ) -> Optional[float]:
-  context = build_rebuy_adjustment_context(strategy, trade, current_rate, min_stake, max_stake)
-  if context is None:
-    return None
-
-  # The first exit is de-risk (providing the trade is still open)
-  if has_rebuy_derisk_exit(context):
-    return return_rebuy_grind_v2_after_derisk(
-      strategy,
-      trade,
-      enter_tags,
-      current_time,
-      current_rate,
-      current_profit,
-      current_entry_rate,
-      current_exit_rate,
-      current_entry_profit,
-      current_exit_profit,
-      context,
-      is_short=True,
-    )
-
-  entry_attempt = try_build_rebuy_entry_attempt_from_context(
+  return run_rebuy_adjust_trade_position(
     strategy,
     trade,
+    enter_tags,
     current_time,
     current_rate,
-    context,
+    current_profit,
+    min_stake,
+    max_stake,
+    current_entry_rate,
+    current_exit_rate,
+    current_entry_profit,
+    current_exit_profit,
     is_short=True,
     use_v3=False,
     entry_allowed=short_rebuy_entry_allowed,
+    allow_derisk=True,
   )
-  if entry_attempt.handled:
-    return entry_attempt.adjustment
-
-  derisk_adjustment = try_return_rebuy_derisk_adjustment_from_context(
-    strategy,
-    trade,
-    current_time,
-    context,
-  )
-  if derisk_adjustment is not None:
-    return derisk_adjustment
-
-  return None
 
 # Short Rebuy Adjust Trade Position v3
 # ---------------------------------------------------------------------------------------------
@@ -702,22 +717,22 @@ def short_rebuy_adjust_trade_position_v3(
   current_exit_profit: float,
   **kwargs,
 ) -> Optional[float]:
-  context = build_rebuy_adjustment_context(strategy, trade, current_rate, min_stake, max_stake)
-  if context is None:
-    return None
-
-  entry_attempt = try_build_rebuy_entry_attempt_from_context(
+  return run_rebuy_adjust_trade_position(
     strategy,
     trade,
+    enter_tags,
     current_time,
     current_rate,
-    context,
+    current_profit,
+    min_stake,
+    max_stake,
+    current_entry_rate,
+    current_exit_rate,
+    current_entry_profit,
+    current_exit_profit,
     is_short=True,
     use_v3=True,
     entry_allowed=short_rebuy_v3_entry_allowed,
+    allow_derisk=False,
   )
-  if entry_attempt.handled:
-    return entry_attempt.adjustment
-
-  return None
 
