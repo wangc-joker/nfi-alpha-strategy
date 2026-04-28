@@ -152,6 +152,21 @@ def build_rebuy_sub_grind_state(
   )
 
 
+def build_rebuy_entry_amount(
+  slice_amount: float,
+  stake_multiplier: float,
+  leverage: float,
+  min_stake: float,
+  max_stake: float,
+) -> Optional[float]:
+  buy_amount = slice_amount * stake_multiplier / leverage
+  if buy_amount < (min_stake * 1.5):
+    buy_amount = min_stake * 1.5
+  if buy_amount > max_stake:
+    return None
+  return buy_amount
+
+
 def return_rebuy_entry_adjustment(
   strategy,
   trade: Trade,
@@ -207,6 +222,40 @@ def return_rebuy_derisk_adjustment(
   if has_order_tags:
     return -ft_sell_amount, "derisk_level_3"
   return -ft_sell_amount
+
+
+def try_return_rebuy_derisk_adjustment(
+  strategy,
+  trade: Trade,
+  current_time: datetime,
+  exit_rate: float,
+  min_stake: float,
+  slice_amount: float,
+  profit_stake: float,
+  profit_ratio: float,
+  has_order_tags: bool,
+):
+  derisk_threshold = strategy.rebuy_mode_derisk_futures if strategy.is_futures_mode else strategy.rebuy_mode_derisk_spot
+  if not strategy.derisk_enable:
+    return None
+  if profit_stake >= (slice_amount * derisk_threshold):
+    return None
+
+  sell_amount = trade.amount * exit_rate / trade.leverage - (min_stake * 1.55)
+  ft_sell_amount = sell_amount * trade.leverage * (trade.stake_amount / trade.amount) / exit_rate
+  if sell_amount > min_stake and ft_sell_amount > min_stake:
+    return return_rebuy_derisk_adjustment(
+      strategy,
+      trade,
+      current_time,
+      exit_rate,
+      sell_amount,
+      ft_sell_amount,
+      profit_stake,
+      profit_ratio,
+      has_order_tags,
+    )
+  return None
 
 
 def long_rebuy_adjust_trade_position(
@@ -296,10 +345,14 @@ def long_rebuy_adjust_trade_position(
         and (last_candle["close"] < (last_candle["EMA_26"] * 0.988))
       )
     ):
-      buy_amount = slice_amount * rebuy_mode_stakes[sub_grind_count] / trade.leverage
-      if buy_amount < (min_stake * 1.5):
-        buy_amount = min_stake * 1.5
-      if buy_amount > max_stake:
+      buy_amount = build_rebuy_entry_amount(
+        slice_amount,
+        rebuy_mode_stakes[sub_grind_count],
+        trade.leverage,
+        min_stake,
+        max_stake,
+      )
+      if buy_amount is None:
         return None
       return return_rebuy_entry_adjustment(
         strategy,
@@ -312,28 +365,19 @@ def long_rebuy_adjust_trade_position(
         has_order_tags,
       )
 
-  if strategy.derisk_enable and (
-    profit_stake
-    < (
-      slice_amount * (strategy.rebuy_mode_derisk_futures if strategy.is_futures_mode else strategy.rebuy_mode_derisk_spot)
-      # / (trade.leverage if strategy.is_futures_mode else 1.0)
-    )
-  ):
-    sell_amount = trade.amount * exit_rate / trade.leverage - (min_stake * 1.55)
-    ft_sell_amount = sell_amount * trade.leverage * (trade.stake_amount / trade.amount) / exit_rate
-    if sell_amount > min_stake and ft_sell_amount > min_stake:
-      grind_profit = 0.0
-      return return_rebuy_derisk_adjustment(
-        strategy,
-        trade,
-        current_time,
-        exit_rate,
-        sell_amount,
-        ft_sell_amount,
-        profit_stake,
-        profit_ratio,
-        has_order_tags,
-      )
+  derisk_adjustment = try_return_rebuy_derisk_adjustment(
+    strategy,
+    trade,
+    current_time,
+    exit_rate,
+    min_stake,
+    slice_amount,
+    profit_stake,
+    profit_ratio,
+    has_order_tags,
+  )
+  if derisk_adjustment is not None:
+    return derisk_adjustment
 
   return None
 
@@ -403,10 +447,14 @@ def long_rebuy_adjust_trade_position_v3(
         and (last_candle["close"] < (last_candle["EMA_26"] * 0.988))
       )
     ):
-      buy_amount = slice_amount * rebuy_mode_stakes[sub_grind_count] / trade.leverage
-      if buy_amount < (min_stake * 1.5):
-        buy_amount = min_stake * 1.5
-      if buy_amount > max_stake:
+      buy_amount = build_rebuy_entry_amount(
+        slice_amount,
+        rebuy_mode_stakes[sub_grind_count],
+        trade.leverage,
+        min_stake,
+        max_stake,
+      )
+      if buy_amount is None:
         return None
       return return_rebuy_entry_adjustment(
         strategy,
@@ -498,10 +546,14 @@ def short_rebuy_adjust_trade_position(
       and (last_candle["ROC_2"] < 0.0)
       and (last_candle["close"] > (last_candle["EMA_26"] * 1.012))
     ):
-      buy_amount = slice_amount * rebuy_mode_stakes[sub_grind_count] / trade.leverage
-      if buy_amount < (min_stake * 1.5):
-        buy_amount = min_stake * 1.5
-      if buy_amount > max_stake:
+      buy_amount = build_rebuy_entry_amount(
+        slice_amount,
+        rebuy_mode_stakes[sub_grind_count],
+        trade.leverage,
+        min_stake,
+        max_stake,
+      )
+      if buy_amount is None:
         return None
       return return_rebuy_entry_adjustment(
         strategy,
@@ -514,28 +566,19 @@ def short_rebuy_adjust_trade_position(
         has_order_tags,
       )
 
-  if strategy.derisk_enable and (
-    profit_stake
-    < (
-      slice_amount * (strategy.rebuy_mode_derisk_futures if strategy.is_futures_mode else strategy.rebuy_mode_derisk_spot)
-      # / (trade.leverage if strategy.is_futures_mode else 1.0)
-    )
-  ):
-    sell_amount = trade.amount * exit_rate / trade.leverage - (min_stake * 1.55)
-    ft_sell_amount = sell_amount * trade.leverage * (trade.stake_amount / trade.amount) / exit_rate
-    if sell_amount > min_stake and ft_sell_amount > min_stake:
-      grind_profit = 0.0
-      return return_rebuy_derisk_adjustment(
-        strategy,
-        trade,
-        current_time,
-        exit_rate,
-        sell_amount,
-        ft_sell_amount,
-        profit_stake,
-        profit_ratio,
-        has_order_tags,
-      )
+  derisk_adjustment = try_return_rebuy_derisk_adjustment(
+    strategy,
+    trade,
+    current_time,
+    exit_rate,
+    min_stake,
+    slice_amount,
+    profit_stake,
+    profit_ratio,
+    has_order_tags,
+  )
+  if derisk_adjustment is not None:
+    return derisk_adjustment
 
   return None
 
@@ -608,10 +651,14 @@ def short_rebuy_adjust_trade_position_v3(
         and (last_candle["close"] < (last_candle["EMA_26"] * 1.012))
       )
     ):
-      buy_amount = slice_amount * rebuy_mode_stakes[sub_grind_count] / trade.leverage
-      if buy_amount < (min_stake * 1.5):
-        buy_amount = min_stake * 1.5
-      if buy_amount > max_stake:
+      buy_amount = build_rebuy_entry_amount(
+        slice_amount,
+        rebuy_mode_stakes[sub_grind_count],
+        trade.leverage,
+        min_stake,
+        max_stake,
+      )
+      if buy_amount is None:
         return None
       return return_rebuy_entry_adjustment(
         strategy,
