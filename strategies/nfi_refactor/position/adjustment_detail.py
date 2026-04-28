@@ -92,17 +92,25 @@ def call_adjustment_handler(adjustment_func, context: AdjustmentCallContext):
   )
 
 
+def all_tags_in(enter_tags, valid_tags):
+  return all(c in valid_tags for c in enter_tags)
+
+
+def any_tags_in(enter_tags, valid_tags):
+  return any(c in valid_tags for c in enter_tags)
+
+
 def matches_long_rebuy_adjustment(strategy, enter_tags):
-  return all(c in strategy.long_rebuy_mode_tags for c in enter_tags) or (
-    any(c in strategy.long_rebuy_mode_tags for c in enter_tags)
-    and all(c in (strategy.long_rebuy_mode_tags + strategy.long_grind_mode_tags) for c in enter_tags)
+  return all_tags_in(enter_tags, strategy.long_rebuy_mode_tags) or (
+    any_tags_in(enter_tags, strategy.long_rebuy_mode_tags)
+    and all_tags_in(enter_tags, strategy.long_rebuy_mode_tags + strategy.long_grind_mode_tags)
   )
 
 
 def matches_short_rebuy_adjustment(strategy, enter_tags):
-  return all(c in strategy.short_rebuy_mode_tags for c in enter_tags) or (
-    any(c in strategy.short_rebuy_mode_tags for c in enter_tags)
-    and all(c in (strategy.short_rebuy_mode_tags + strategy.short_grind_mode_tags) for c in enter_tags)
+  return all_tags_in(enter_tags, strategy.short_rebuy_mode_tags) or (
+    any_tags_in(enter_tags, strategy.short_rebuy_mode_tags)
+    and all_tags_in(enter_tags, strategy.short_rebuy_mode_tags + strategy.short_grind_mode_tags)
   )
 
 
@@ -150,13 +158,13 @@ def get_short_grind_v2_or_v3_known_tags(strategy):
 def matches_long_grind_adjustment_v2_or_v3(strategy, enter_tags):
   trigger_tags = get_long_grind_v2_or_v3_trigger_tags(strategy)
   known_tags = get_long_grind_v2_or_v3_known_tags(strategy)
-  return any(c in trigger_tags for c in enter_tags) or not any(c in known_tags for c in enter_tags)
+  return any_tags_in(enter_tags, trigger_tags) or not any_tags_in(enter_tags, known_tags)
 
 
 def matches_short_grind_adjustment_v2_or_v3(strategy, enter_tags):
   trigger_tags = get_short_grind_v2_or_v3_trigger_tags(strategy)
   known_tags = get_short_grind_v2_or_v3_known_tags(strategy)
-  return any(c in trigger_tags for c in enter_tags) or not any(c in known_tags for c in enter_tags)
+  return any_tags_in(enter_tags, trigger_tags) or not any_tags_in(enter_tags, known_tags)
 
 
 def select_long_rebuy_adjustment_func(strategy, state: AdjustmentModeState):
