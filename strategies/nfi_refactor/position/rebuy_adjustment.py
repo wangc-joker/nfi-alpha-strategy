@@ -167,6 +167,56 @@ def build_rebuy_entry_amount(
   return buy_amount
 
 
+def is_rebuy_slot_available(partial_sell: bool, sub_grind_count: int, max_sub_grinds: int) -> bool:
+  return (not partial_sell) and (sub_grind_count < max_sub_grinds)
+
+
+def long_rebuy_entry_allowed(last_candle, slice_profit_entry: float, threshold: float) -> bool:
+  return (
+    (slice_profit_entry < threshold)
+    and (last_candle["RSI_3"] > 10.0)
+    and (last_candle["RSI_3_15m"] > 10.0)
+    and (last_candle["RSI_14"] < 40.0)
+    and (last_candle["ROC_2"] > -0.0)
+    and (last_candle["close"] < (last_candle["EMA_26"] * 0.988))
+  )
+
+
+def long_rebuy_v3_entry_allowed(last_candle, slice_profit_entry: float, threshold: float) -> bool:
+  return (
+    (slice_profit_entry < threshold)
+    and (last_candle["protections_long_global"] == True)
+    and (last_candle["RSI_3"] > 10.0)
+    and (last_candle["RSI_3_15m"] > 10.0)
+    and (last_candle["AROONU_14"] < 30.0)
+    and (last_candle["AROONU_14_15m"] < 30.0)
+    and (last_candle["close"] < (last_candle["EMA_26"] * 0.988))
+  )
+
+
+def short_rebuy_entry_allowed(last_candle, slice_profit_entry: float, threshold: float) -> bool:
+  return (
+    (-slice_profit_entry < threshold)
+    and (last_candle["RSI_3"] < 90.0)
+    and (last_candle["RSI_3_15m"] < 90.0)
+    and (last_candle["RSI_14"] > 60.0)
+    and (last_candle["ROC_2"] < 0.0)
+    and (last_candle["close"] > (last_candle["EMA_26"] * 1.012))
+  )
+
+
+def short_rebuy_v3_entry_allowed(last_candle, slice_profit_entry: float, threshold: float) -> bool:
+  return (
+    (-slice_profit_entry < threshold)
+    and (last_candle["protections_long_global"] == True)
+    and (last_candle["RSI_3"] < 90.0)
+    and (last_candle["RSI_3_15m"] < 90.0)
+    and (last_candle["AROOND_14"] < 30.0)
+    and (last_candle["AROOND_14_15m"] < 30.0)
+    and (last_candle["close"] < (last_candle["EMA_26"] * 1.012))
+  )
+
+
 def return_rebuy_entry_adjustment(
   strategy,
   trade: Trade,
@@ -323,27 +373,11 @@ def long_rebuy_adjust_trade_position(
   partial_sell = sub_grind_state.partial_sell
   sub_grind_count = sub_grind_state.sub_grind_count
 
-  if (not partial_sell) and (sub_grind_count < max_sub_grinds):
-    if (
-      ((0 <= sub_grind_count < max_sub_grinds) and (slice_profit_entry < rebuy_mode_sub_thresholds[sub_grind_count]))
-      # and (
-      #   (last_candle["close"] > (last_candle["close_max_12"] * 0.94))
-      #   and (last_candle["close"] > (last_candle["close_max_24"] * 0.92))
-      #   and (last_candle["close"] > (last_candle["close_max_48"] * 0.90))
-      #   and (last_candle["close"] > (last_candle["high_max_24_1h"] * 0.88))
-      #   and (last_candle["close"] > (last_candle["high_max_48_1h"] * 0.86))
-      #   and (last_candle["btc_pct_close_max_72_5m"] < 0.03)
-      #   and (last_candle["btc_pct_close_max_24_5m"] < 0.03)
-      # )
-      and (
-        (last_candle["RSI_3"] > 10.0)
-        and (last_candle["RSI_3_15m"] > 10.0)
-        # and (last_candle["RSI_3_1h"] > 10.0)
-        # and (last_candle["RSI_3_4h"] > 10.0)
-        and (last_candle["RSI_14"] < 40.0)
-        and (last_candle["ROC_2"] > -0.0)
-        and (last_candle["close"] < (last_candle["EMA_26"] * 0.988))
-      )
+  if is_rebuy_slot_available(partial_sell, sub_grind_count, max_sub_grinds):
+    if long_rebuy_entry_allowed(
+      last_candle,
+      slice_profit_entry,
+      rebuy_mode_sub_thresholds[sub_grind_count],
     ):
       buy_amount = build_rebuy_entry_amount(
         slice_amount,
@@ -435,17 +469,11 @@ def long_rebuy_adjust_trade_position_v3(
   partial_sell = sub_grind_state.partial_sell
   sub_grind_count = sub_grind_state.sub_grind_count
 
-  if (not partial_sell) and (sub_grind_count < max_sub_grinds):
-    if (
-      ((0 <= sub_grind_count < max_sub_grinds) and (slice_profit_entry < rebuy_mode_sub_thresholds[sub_grind_count]))
-      and (last_candle["protections_long_global"] == True)
-      and (
-        (last_candle["RSI_3"] > 10.0)
-        and (last_candle["RSI_3_15m"] > 10.0)
-        and (last_candle["AROONU_14"] < 30.0)
-        and (last_candle["AROONU_14_15m"] < 30.0)
-        and (last_candle["close"] < (last_candle["EMA_26"] * 0.988))
-      )
+  if is_rebuy_slot_available(partial_sell, sub_grind_count, max_sub_grinds):
+    if long_rebuy_v3_entry_allowed(
+      last_candle,
+      slice_profit_entry,
+      rebuy_mode_sub_thresholds[sub_grind_count],
     ):
       buy_amount = build_rebuy_entry_amount(
         slice_amount,
@@ -534,17 +562,11 @@ def short_rebuy_adjust_trade_position(
   partial_sell = sub_grind_state.partial_sell
   sub_grind_count = sub_grind_state.sub_grind_count
 
-  if (not partial_sell) and (sub_grind_count < max_sub_grinds):
-    if (
-      (0 <= sub_grind_count < max_sub_grinds) and (-slice_profit_entry < rebuy_mode_sub_thresholds[sub_grind_count])
-    ) and (
-      (last_candle["RSI_3"] < 90.0)
-      and (last_candle["RSI_3_15m"] < 90.0)
-      # and (last_candle["RSI_3_1h"] < 90.0)
-      # and (last_candle["RSI_3_4h"] < 90.0)
-      and (last_candle["RSI_14"] > 60.0)
-      and (last_candle["ROC_2"] < 0.0)
-      and (last_candle["close"] > (last_candle["EMA_26"] * 1.012))
+  if is_rebuy_slot_available(partial_sell, sub_grind_count, max_sub_grinds):
+    if short_rebuy_entry_allowed(
+      last_candle,
+      slice_profit_entry,
+      rebuy_mode_sub_thresholds[sub_grind_count],
     ):
       buy_amount = build_rebuy_entry_amount(
         slice_amount,
@@ -636,20 +658,11 @@ def short_rebuy_adjust_trade_position_v3(
   partial_sell = sub_grind_state.partial_sell
   sub_grind_count = sub_grind_state.sub_grind_count
 
-  if (not partial_sell) and (sub_grind_count < max_sub_grinds):
-    if (
-      (
-        (0 <= sub_grind_count < max_sub_grinds)
-        and (-slice_profit_entry < rebuy_mode_sub_thresholds[sub_grind_count])
-      )
-      and (last_candle["protections_long_global"] == True)
-      and (
-        (last_candle["RSI_3"] < 90.0)
-        and (last_candle["RSI_3_15m"] < 90.0)
-        and (last_candle["AROOND_14"] < 30.0)
-        and (last_candle["AROOND_14_15m"] < 30.0)
-        and (last_candle["close"] < (last_candle["EMA_26"] * 1.012))
-      )
+  if is_rebuy_slot_available(partial_sell, sub_grind_count, max_sub_grinds):
+    if short_rebuy_v3_entry_allowed(
+      last_candle,
+      slice_profit_entry,
+      rebuy_mode_sub_thresholds[sub_grind_count],
     ):
       buy_amount = build_rebuy_entry_amount(
         slice_amount,
