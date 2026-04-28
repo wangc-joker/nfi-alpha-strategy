@@ -97,6 +97,7 @@ D:\test\NostalgiaForInfinity\NostalgiaForInfinityX7.py
 - [ ] Investigate grind adjustment detail handler parity drift.
 - [x] Split position adjustment helper predicates into long/short modules.
 - [x] Extract position adjustment detail handlers.
+- [x] Extract rebuy position adjustment handlers.
 - [x] Extract confirm_trade_entry and mode entry guards.
 - [x] Extract runtime mode/state helper methods.
 - [x] Extract ticker timeframe helper.

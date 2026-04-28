@@ -24,6 +24,7 @@ from nfi_refactor.position import adjustment_helpers
 from nfi_refactor.position import leverage as leverage_module
 from nfi_refactor.position import order_events
 from nfi_refactor.position import profit as profit_module
+from nfi_refactor.position import rebuy_adjustment
 from nfi_refactor.position import stake as stake_module
 from nfi_refactor.state import hold_trades
 from nfi_refactor.state import initialization
@@ -463,6 +464,18 @@ class NFIRefactorStrategy(NostalgiaForInfinityX7):
             current_exit_profit,
             **kwargs,
         )
+
+    def long_rebuy_adjust_trade_position(self, *args, **kwargs):
+        return rebuy_adjustment.long_rebuy_adjust_trade_position(self, *args, **kwargs)
+
+    def long_rebuy_adjust_trade_position_v3(self, *args, **kwargs):
+        return rebuy_adjustment.long_rebuy_adjust_trade_position_v3(self, *args, **kwargs)
+
+    def short_rebuy_adjust_trade_position(self, *args, **kwargs):
+        return rebuy_adjustment.short_rebuy_adjust_trade_position(self, *args, **kwargs)
+
+    def short_rebuy_adjust_trade_position_v3(self, *args, **kwargs):
+        return rebuy_adjustment.short_rebuy_adjust_trade_position_v3(self, *args, **kwargs)
 
     def long_buyback_entry_v2(self, *args, **kwargs):
         return adjustment_helpers.long_buyback_entry_v2(self, *args, **kwargs)
