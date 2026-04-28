@@ -98,6 +98,63 @@ def build_rebuy_adjustment_context(
   )
 
 
+def return_rebuy_entry_adjustment(
+  strategy,
+  trade: Trade,
+  current_time: datetime,
+  current_rate: float,
+  buy_amount: float,
+  profit_stake: float,
+  profit_ratio: float,
+  has_order_tags: bool,
+):
+  strategy.dp.send_msg(
+    strategy.notification_msg(
+      "rebuy",
+      tag="r",
+      pair=trade.pair,
+      rate=current_rate,
+      stake_amount=buy_amount,
+      profit_stake=profit_stake,
+      profit_ratio=profit_ratio,
+      stake_currency=strategy.config["stake_currency"],
+    )
+  )
+  log.info(
+    f"Rebuy (r) [{current_time}] [{trade.pair}] | Rate: {current_rate} | Stake amount: {buy_amount} | Profit (stake): {profit_stake} | Profit: {(profit_ratio * 100.0):.2f}%"
+  )
+  if has_order_tags:
+    return buy_amount, "r"
+  return buy_amount
+
+
+def return_rebuy_derisk_adjustment(
+  strategy,
+  trade: Trade,
+  current_time: datetime,
+  exit_rate: float,
+  sell_amount: float,
+  ft_sell_amount: float,
+  profit_stake: float,
+  profit_ratio: float,
+  has_order_tags: bool,
+):
+  strategy.dp.send_msg(
+    f"❌​​ ​**Rebuy De-risk:** `Level 3`\n"
+    f"🪙​ **Pair:** `{trade.pair}`\n"
+    f"〽️​ **Rate:** `{exit_rate}`\n"
+    f"💰 **Stake amount:** `{sell_amount}`\n"
+    f"💵​ **Profit (stake):** `{profit_stake}`\n"
+    f"💸 **Profit (percent):** `{(profit_ratio * 100.0):.2f}%`"
+  )
+  log.info(
+    f"Rebuy De-risk Level 3 [{current_time}] [{trade.pair}] | Rate: {exit_rate} | Stake amount: {sell_amount} | Profit (stake): {profit_stake} | Profit: {(profit_ratio * 100.0):.2f}%"
+  )
+  if has_order_tags:
+    return -ft_sell_amount, "derisk_level_3"
+  return -ft_sell_amount
+
+
 def long_rebuy_adjust_trade_position(
   strategy,
   trade: Trade,
@@ -199,25 +256,16 @@ def long_rebuy_adjust_trade_position(
         buy_amount = min_stake * 1.5
       if buy_amount > max_stake:
         return None
-      strategy.dp.send_msg(
-        strategy.notification_msg(
-          "rebuy",
-          tag="r",
-          pair=trade.pair,
-          rate=current_rate,
-          stake_amount=buy_amount,
-          profit_stake=profit_stake,
-          profit_ratio=profit_ratio,
-          stake_currency=strategy.config["stake_currency"],
-        )
+      return return_rebuy_entry_adjustment(
+        strategy,
+        trade,
+        current_time,
+        current_rate,
+        buy_amount,
+        profit_stake,
+        profit_ratio,
+        has_order_tags,
       )
-      log.info(
-        f"Rebuy (r) [{current_time}] [{trade.pair}] | Rate: {current_rate} | Stake amount: {buy_amount} | Profit (stake): {profit_stake} | Profit: {(profit_ratio * 100.0):.2f}%"
-      )
-      if has_order_tags:
-        return buy_amount, "r"
-      else:
-        return buy_amount
 
   if strategy.derisk_enable and (
     profit_stake
@@ -230,21 +278,17 @@ def long_rebuy_adjust_trade_position(
     ft_sell_amount = sell_amount * trade.leverage * (trade.stake_amount / trade.amount) / exit_rate
     if sell_amount > min_stake and ft_sell_amount > min_stake:
       grind_profit = 0.0
-      strategy.dp.send_msg(
-        f"❌​​ ​**Rebuy De-risk:** `Level 3`\n"
-        f"🪙​ **Pair:** `{trade.pair}`\n"
-        f"〽️​ **Rate:** `{exit_rate}`\n"
-        f"💰 **Stake amount:** `{sell_amount}`\n"
-        f"💵​ **Profit (stake):** `{profit_stake}`\n"
-        f"💸 **Profit (percent):** `{(profit_ratio * 100.0):.2f}%`"
+      return return_rebuy_derisk_adjustment(
+        strategy,
+        trade,
+        current_time,
+        exit_rate,
+        sell_amount,
+        ft_sell_amount,
+        profit_stake,
+        profit_ratio,
+        has_order_tags,
       )
-      log.info(
-        f"Rebuy De-risk Level 3 [{current_time}] [{trade.pair}] | Rate: {exit_rate} | Stake amount: {sell_amount} | Profit (stake): {profit_stake} | Profit: {(profit_ratio * 100.0):.2f}%"
-      )
-      if has_order_tags:
-        return -ft_sell_amount, "derisk_level_3"
-      else:
-        return -ft_sell_amount
 
   return None
 
@@ -328,25 +372,16 @@ def long_rebuy_adjust_trade_position_v3(
         buy_amount = min_stake * 1.5
       if buy_amount > max_stake:
         return None
-      strategy.dp.send_msg(
-        strategy.notification_msg(
-          "rebuy",
-          tag="r",
-          pair=trade.pair,
-          rate=current_rate,
-          stake_amount=buy_amount,
-          profit_stake=profit_stake,
-          profit_ratio=profit_ratio,
-          stake_currency=strategy.config["stake_currency"],
-        )
+      return return_rebuy_entry_adjustment(
+        strategy,
+        trade,
+        current_time,
+        current_rate,
+        buy_amount,
+        profit_stake,
+        profit_ratio,
+        has_order_tags,
       )
-      log.info(
-        f"Rebuy (r) [{current_time}] [{trade.pair}] | Rate: {current_rate} | Stake amount: {buy_amount} | Profit (stake): {profit_stake} | Profit: {(profit_ratio * 100.0):.2f}%"
-      )
-      if has_order_tags:
-        return buy_amount, "r"
-      else:
-        return buy_amount
 
   return None
 
@@ -441,25 +476,16 @@ def short_rebuy_adjust_trade_position(
         buy_amount = min_stake * 1.5
       if buy_amount > max_stake:
         return None
-      strategy.dp.send_msg(
-        strategy.notification_msg(
-          "rebuy",
-          tag="r",
-          pair=trade.pair,
-          rate=current_rate,
-          stake_amount=buy_amount,
-          profit_stake=profit_stake,
-          profit_ratio=profit_ratio,
-          stake_currency=strategy.config["stake_currency"],
-        )
+      return return_rebuy_entry_adjustment(
+        strategy,
+        trade,
+        current_time,
+        current_rate,
+        buy_amount,
+        profit_stake,
+        profit_ratio,
+        has_order_tags,
       )
-      log.info(
-        f"Rebuy (r) [{current_time}] [{trade.pair}] | Rate: {current_rate} | Stake amount: {buy_amount} | Profit (stake): {profit_stake} | Profit: {(profit_ratio * 100.0):.2f}%"
-      )
-      if has_order_tags:
-        return buy_amount, "r"
-      else:
-        return buy_amount
 
   if strategy.derisk_enable and (
     profit_stake
@@ -472,21 +498,17 @@ def short_rebuy_adjust_trade_position(
     ft_sell_amount = sell_amount * trade.leverage * (trade.stake_amount / trade.amount) / exit_rate
     if sell_amount > min_stake and ft_sell_amount > min_stake:
       grind_profit = 0.0
-      strategy.dp.send_msg(
-        f"❌​​ ​**Rebuy De-risk:** `Level 3`\n"
-        f"🪙​ **Pair:** `{trade.pair}`\n"
-        f"〽️​ **Rate:** `{exit_rate}`\n"
-        f"💰 **Stake amount:** `{sell_amount}`\n"
-        f"💵​ **Profit (stake):** `{profit_stake}`\n"
-        f"💸 **Profit (percent):** `{(profit_ratio * 100.0):.2f}%`"
+      return return_rebuy_derisk_adjustment(
+        strategy,
+        trade,
+        current_time,
+        exit_rate,
+        sell_amount,
+        ft_sell_amount,
+        profit_stake,
+        profit_ratio,
+        has_order_tags,
       )
-      log.info(
-        f"Rebuy De-risk Level 3 [{current_time}] [{trade.pair}] | Rate: {exit_rate} | Stake amount: {sell_amount} | Profit (stake): {profit_stake} | Profit: {(profit_ratio * 100.0):.2f}%"
-      )
-      if has_order_tags:
-        return -ft_sell_amount, "derisk_level_3"
-      else:
-        return -ft_sell_amount
 
   return None
 
@@ -573,25 +595,16 @@ def short_rebuy_adjust_trade_position_v3(
         buy_amount = min_stake * 1.5
       if buy_amount > max_stake:
         return None
-      strategy.dp.send_msg(
-        strategy.notification_msg(
-          "rebuy",
-          tag="r",
-          pair=trade.pair,
-          rate=current_rate,
-          stake_amount=buy_amount,
-          profit_stake=profit_stake,
-          profit_ratio=profit_ratio,
-          stake_currency=strategy.config["stake_currency"],
-        )
+      return return_rebuy_entry_adjustment(
+        strategy,
+        trade,
+        current_time,
+        current_rate,
+        buy_amount,
+        profit_stake,
+        profit_ratio,
+        has_order_tags,
       )
-      log.info(
-        f"Rebuy (r) [{current_time}] [{trade.pair}] | Rate: {current_rate} | Stake amount: {buy_amount} | Profit (stake): {profit_stake} | Profit: {(profit_ratio * 100.0):.2f}%"
-      )
-      if has_order_tags:
-        return buy_amount, "r"
-      else:
-        return buy_amount
 
   return None
 
