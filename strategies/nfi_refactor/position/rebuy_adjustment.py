@@ -489,6 +489,44 @@ def try_return_rebuy_derisk_adjustment_from_context(
   )
 
 
+def has_rebuy_derisk_exit(context: RebuyAdjustmentContext) -> bool:
+  return (context.count_of_exits > 0) and (context.filled_exits[0].ft_order_tag in ["derisk_level_3"])
+
+
+def return_rebuy_grind_v2_after_derisk(
+  strategy,
+  trade: Trade,
+  enter_tags,
+  current_time: datetime,
+  current_rate: float,
+  current_profit: float,
+  current_entry_rate: float,
+  current_exit_rate: float,
+  current_entry_profit: float,
+  current_exit_profit: float,
+  context: RebuyAdjustmentContext,
+  is_short: bool,
+):
+  adjustment_func = (
+    strategy.short_grind_adjust_trade_position_v2
+    if is_short
+    else strategy.long_grind_adjust_trade_position_v2
+  )
+  return adjustment_func(
+    trade,
+    enter_tags,
+    current_time,
+    current_rate,
+    current_profit,
+    context.min_stake,
+    context.max_stake,
+    current_entry_rate,
+    current_exit_rate,
+    current_entry_profit,
+    current_exit_profit,
+  )
+
+
 def long_rebuy_adjust_trade_position(
   strategy,
   trade: Trade,
@@ -509,19 +547,20 @@ def long_rebuy_adjust_trade_position(
     return None
 
   # The first exit is de-risk (providing the trade is still open)
-  if (context.count_of_exits > 0) and (context.filled_exits[0].ft_order_tag in ["derisk_level_3"]):
-    return strategy.long_grind_adjust_trade_position_v2(
+  if has_rebuy_derisk_exit(context):
+    return return_rebuy_grind_v2_after_derisk(
+      strategy,
       trade,
       enter_tags,
       current_time,
       current_rate,
       current_profit,
-      context.min_stake,
-      context.max_stake,
       current_entry_rate,
       current_exit_rate,
       current_entry_profit,
       current_exit_profit,
+      context,
+      is_short=False,
     )
 
   entry_attempt = try_build_rebuy_entry_attempt_from_context(
@@ -605,19 +644,20 @@ def short_rebuy_adjust_trade_position(
     return None
 
   # The first exit is de-risk (providing the trade is still open)
-  if (context.count_of_exits > 0) and (context.filled_exits[0].ft_order_tag in ["derisk_level_3"]):
-    return strategy.short_grind_adjust_trade_position_v2(
+  if has_rebuy_derisk_exit(context):
+    return return_rebuy_grind_v2_after_derisk(
+      strategy,
       trade,
       enter_tags,
       current_time,
       current_rate,
       current_profit,
-      context.min_stake,
-      context.max_stake,
       current_entry_rate,
       current_exit_rate,
       current_entry_profit,
       current_exit_profit,
+      context,
+      is_short=True,
     )
 
   entry_attempt = try_build_rebuy_entry_attempt_from_context(
