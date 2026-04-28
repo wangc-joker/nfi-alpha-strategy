@@ -39,6 +39,12 @@ class RebuySubGrindState:
   current_grind_stake_profit: float
 
 
+@dataclass
+class RebuyModeConfig:
+  stakes: list
+  thresholds: list
+
+
 def get_rebuy_exit_rate(strategy, trade: Trade, current_rate: float) -> float:
   exit_rate = current_rate
   if strategy.dp.runmode.value in ("live", "dry_run"):
@@ -53,6 +59,32 @@ def get_rebuy_exit_rate(strategy, trade: Trade, current_rate: float) -> float:
           if ticker["bid"] is not None:
             exit_rate = ticker["bid"]
   return exit_rate
+
+
+def get_rebuy_mode_config(strategy, use_v3: bool = False) -> RebuyModeConfig:
+  if use_v3:
+    stakes = (
+      strategy.system_v3_rebuy_mode_stakes_futures
+      if strategy.is_futures_mode
+      else strategy.system_v3_rebuy_mode_stakes_spot
+    )
+    thresholds = (
+      strategy.system_v3_rebuy_mode_thresholds_futures
+      if strategy.is_futures_mode
+      else strategy.system_v3_rebuy_mode_thresholds_spot
+    )
+  else:
+    stakes = strategy.rebuy_mode_stakes_futures if strategy.is_futures_mode else strategy.rebuy_mode_stakes_spot
+    thresholds = (
+      strategy.rebuy_mode_thresholds_futures if strategy.is_futures_mode else strategy.rebuy_mode_thresholds_spot
+    )
+  return RebuyModeConfig(stakes=stakes, thresholds=thresholds)
+
+
+def get_rebuy_sub_grind_order_sides(is_short: bool) -> tuple:
+  if is_short:
+    return "sell", "buy"
+  return "buy", "sell"
 
 
 def build_rebuy_adjustment_context(
@@ -356,19 +388,17 @@ def long_rebuy_adjust_trade_position(
       current_exit_profit,
     )
 
-  rebuy_mode_stakes = strategy.rebuy_mode_stakes_futures if strategy.is_futures_mode else strategy.rebuy_mode_stakes_spot
-  max_sub_grinds = len(rebuy_mode_stakes)
-  rebuy_mode_sub_thresholds = (
-    strategy.rebuy_mode_thresholds_futures if strategy.is_futures_mode else strategy.rebuy_mode_thresholds_spot
-  )
+  rebuy_mode_config = get_rebuy_mode_config(strategy)
+  max_sub_grinds = len(rebuy_mode_config.stakes)
+  sub_entry_side, partial_exit_side = get_rebuy_sub_grind_order_sides(is_short=False)
   sub_grind_state = build_rebuy_sub_grind_state(
     strategy,
     trade,
     filled_orders,
     exit_rate,
     min_stake,
-    sub_entry_side="buy",
-    partial_exit_side="sell",
+    sub_entry_side=sub_entry_side,
+    partial_exit_side=partial_exit_side,
   )
   partial_sell = sub_grind_state.partial_sell
   sub_grind_count = sub_grind_state.sub_grind_count
@@ -377,11 +407,11 @@ def long_rebuy_adjust_trade_position(
     if long_rebuy_entry_allowed(
       last_candle,
       slice_profit_entry,
-      rebuy_mode_sub_thresholds[sub_grind_count],
+      rebuy_mode_config.thresholds[sub_grind_count],
     ):
       buy_amount = build_rebuy_entry_amount(
         slice_amount,
-        rebuy_mode_stakes[sub_grind_count],
+        rebuy_mode_config.stakes[sub_grind_count],
         trade.leverage,
         min_stake,
         max_stake,
@@ -448,23 +478,17 @@ def long_rebuy_adjust_trade_position_v3(
   slice_amount = context.slice_amount
   slice_profit_entry = context.slice_profit_entry
 
-  rebuy_mode_stakes = (
-    strategy.system_v3_rebuy_mode_stakes_futures if strategy.is_futures_mode else strategy.system_v3_rebuy_mode_stakes_spot
-  )
-  max_sub_grinds = len(rebuy_mode_stakes)
-  rebuy_mode_sub_thresholds = (
-    strategy.system_v3_rebuy_mode_thresholds_futures
-    if strategy.is_futures_mode
-    else strategy.system_v3_rebuy_mode_thresholds_spot
-  )
+  rebuy_mode_config = get_rebuy_mode_config(strategy, use_v3=True)
+  max_sub_grinds = len(rebuy_mode_config.stakes)
+  sub_entry_side, partial_exit_side = get_rebuy_sub_grind_order_sides(is_short=False)
   sub_grind_state = build_rebuy_sub_grind_state(
     strategy,
     trade,
     filled_orders,
     exit_rate,
     min_stake,
-    sub_entry_side="buy",
-    partial_exit_side="sell",
+    sub_entry_side=sub_entry_side,
+    partial_exit_side=partial_exit_side,
   )
   partial_sell = sub_grind_state.partial_sell
   sub_grind_count = sub_grind_state.sub_grind_count
@@ -473,11 +497,11 @@ def long_rebuy_adjust_trade_position_v3(
     if long_rebuy_v3_entry_allowed(
       last_candle,
       slice_profit_entry,
-      rebuy_mode_sub_thresholds[sub_grind_count],
+      rebuy_mode_config.thresholds[sub_grind_count],
     ):
       buy_amount = build_rebuy_entry_amount(
         slice_amount,
-        rebuy_mode_stakes[sub_grind_count],
+        rebuy_mode_config.stakes[sub_grind_count],
         trade.leverage,
         min_stake,
         max_stake,
@@ -545,19 +569,17 @@ def short_rebuy_adjust_trade_position(
       current_exit_profit,
     )
 
-  rebuy_mode_stakes = strategy.rebuy_mode_stakes_futures if strategy.is_futures_mode else strategy.rebuy_mode_stakes_spot
-  max_sub_grinds = len(rebuy_mode_stakes)
-  rebuy_mode_sub_thresholds = (
-    strategy.rebuy_mode_thresholds_futures if strategy.is_futures_mode else strategy.rebuy_mode_thresholds_spot
-  )
+  rebuy_mode_config = get_rebuy_mode_config(strategy)
+  max_sub_grinds = len(rebuy_mode_config.stakes)
+  sub_entry_side, partial_exit_side = get_rebuy_sub_grind_order_sides(is_short=True)
   sub_grind_state = build_rebuy_sub_grind_state(
     strategy,
     trade,
     filled_orders,
     exit_rate,
     min_stake,
-    sub_entry_side="sell",
-    partial_exit_side="buy",
+    sub_entry_side=sub_entry_side,
+    partial_exit_side=partial_exit_side,
   )
   partial_sell = sub_grind_state.partial_sell
   sub_grind_count = sub_grind_state.sub_grind_count
@@ -566,11 +588,11 @@ def short_rebuy_adjust_trade_position(
     if short_rebuy_entry_allowed(
       last_candle,
       slice_profit_entry,
-      rebuy_mode_sub_thresholds[sub_grind_count],
+      rebuy_mode_config.thresholds[sub_grind_count],
     ):
       buy_amount = build_rebuy_entry_amount(
         slice_amount,
-        rebuy_mode_stakes[sub_grind_count],
+        rebuy_mode_config.stakes[sub_grind_count],
         trade.leverage,
         min_stake,
         max_stake,
@@ -637,23 +659,17 @@ def short_rebuy_adjust_trade_position_v3(
   slice_amount = context.slice_amount
   slice_profit_entry = context.slice_profit_entry
 
-  rebuy_mode_stakes = (
-    strategy.system_v3_rebuy_mode_stakes_futures if strategy.is_futures_mode else strategy.system_v3_rebuy_mode_stakes_spot
-  )
-  max_sub_grinds = len(rebuy_mode_stakes)
-  rebuy_mode_sub_thresholds = (
-    strategy.system_v3_rebuy_mode_thresholds_futures
-    if strategy.is_futures_mode
-    else strategy.system_v3_rebuy_mode_thresholds_spot
-  )
+  rebuy_mode_config = get_rebuy_mode_config(strategy, use_v3=True)
+  max_sub_grinds = len(rebuy_mode_config.stakes)
+  sub_entry_side, partial_exit_side = get_rebuy_sub_grind_order_sides(is_short=True)
   sub_grind_state = build_rebuy_sub_grind_state(
     strategy,
     trade,
     filled_orders,
     exit_rate,
     min_stake,
-    sub_entry_side="sell",
-    partial_exit_side="buy",
+    sub_entry_side=sub_entry_side,
+    partial_exit_side=partial_exit_side,
   )
   partial_sell = sub_grind_state.partial_sell
   sub_grind_count = sub_grind_state.sub_grind_count
@@ -662,11 +678,11 @@ def short_rebuy_adjust_trade_position_v3(
     if short_rebuy_v3_entry_allowed(
       last_candle,
       slice_profit_entry,
-      rebuy_mode_sub_thresholds[sub_grind_count],
+      rebuy_mode_config.thresholds[sub_grind_count],
     ):
       buy_amount = build_rebuy_entry_amount(
         slice_amount,
-        rebuy_mode_stakes[sub_grind_count],
+        rebuy_mode_config.stakes[sub_grind_count],
         trade.leverage,
         min_stake,
         max_stake,
