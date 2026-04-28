@@ -1,6 +1,17 @@
 """Short-side custom exit routing extracted from NFI."""
 
 from nfi_refactor.exits.custom_exit_call import call_custom_exit_mode
+from nfi_refactor.exits.custom_exit_long_match import matches_any_long_mode
+from nfi_refactor.exits.custom_exit_short_match import (
+  matches_any_short_mode,
+  matches_short_high_profit,
+  matches_short_normal,
+  matches_short_pump,
+  matches_short_quick,
+  matches_short_rapid,
+  matches_short_rebuy,
+  matches_short_scalp,
+)
 
 
 def route_short_custom_exit(
@@ -28,7 +39,7 @@ def route_short_custom_exit(
 ):
 
   # Short normal mode
-  if any(c in strategy.short_normal_mode_tags for c in enter_tags):
+  if matches_short_normal(strategy, enter_tags):
     exit_reason = call_custom_exit_mode(
       strategy.short_exit_normal,
       enter_tag,
@@ -56,7 +67,7 @@ def route_short_custom_exit(
       return exit_reason
 
   # Short Pump mode
-  if any(c in strategy.short_pump_mode_tags for c in enter_tags):
+  if matches_short_pump(strategy, enter_tags):
     exit_reason = call_custom_exit_mode(
       strategy.short_exit_pump,
       enter_tag,
@@ -84,7 +95,7 @@ def route_short_custom_exit(
       return exit_reason
 
   # Short Quick mode
-  if any(c in strategy.short_quick_mode_tags for c in enter_tags):
+  if matches_short_quick(strategy, enter_tags):
     exit_reason = call_custom_exit_mode(
       strategy.short_exit_quick,
       enter_tag,
@@ -112,7 +123,7 @@ def route_short_custom_exit(
       return exit_reason
 
   # Short Rebuy mode
-  if all(c in strategy.short_rebuy_mode_tags for c in enter_tags):
+  if matches_short_rebuy(strategy, enter_tags):
     exit_reason = call_custom_exit_mode(
       strategy.short_exit_rebuy,
       enter_tag,
@@ -140,7 +151,7 @@ def route_short_custom_exit(
       return exit_reason
 
   # Short high profit mode
-  if any(c in strategy.short_high_profit_mode_tags for c in enter_tags):
+  if matches_short_high_profit(strategy, enter_tags):
     exit_reason = call_custom_exit_mode(
       strategy.short_exit_high_profit,
       enter_tag,
@@ -168,7 +179,7 @@ def route_short_custom_exit(
       return exit_reason
 
   # Short rapid mode
-  if any(c in strategy.short_rapid_mode_tags for c in enter_tags):
+  if matches_short_rapid(strategy, enter_tags):
     exit_reason = call_custom_exit_mode(
       strategy.short_exit_rapid,
       enter_tag,
@@ -196,12 +207,7 @@ def route_short_custom_exit(
       return exit_reason
 
   # Short scalp mode
-  if all(c in strategy.short_scalp_mode_tags for c in enter_tags) or (
-    any(c in strategy.short_scalp_mode_tags for c in enter_tags)
-    and all(
-      c in (strategy.short_scalp_mode_tags + strategy.short_rebuy_mode_tags + strategy.short_grind_mode_tags) for c in enter_tags
-    )
-  ):
+  if matches_short_scalp(strategy, enter_tags):
     exit_reason = call_custom_exit_mode(
       strategy.short_exit_scalp,
       enter_tag,
@@ -229,24 +235,7 @@ def route_short_custom_exit(
       return exit_reason
 
   # Trades not opened by X7
-  if not trade.is_short and (
-    not any(
-      c
-      in (
-        strategy.long_normal_mode_tags
-        + strategy.long_pump_mode_tags
-        + strategy.long_quick_mode_tags
-        + strategy.long_rebuy_mode_tags
-        + strategy.long_high_profit_mode_tags
-        + strategy.long_rapid_mode_tags
-        + strategy.long_grind_mode_tags
-        + strategy.long_btc_mode_tags
-        + strategy.long_top_coins_mode_tags
-        + strategy.long_scalp_mode_tags
-      )
-      for c in enter_tags
-    )
-  ):
+  if not trade.is_short and (not matches_any_long_mode(strategy, enter_tags)):
     # use normal mode for such trades
     exit_reason = call_custom_exit_mode(
       strategy.long_exit_normal,
@@ -275,22 +264,7 @@ def route_short_custom_exit(
       return exit_reason
 
   # Trades not opened by X7
-  if trade.is_short and (
-    not any(
-      c
-      in (
-        strategy.short_normal_mode_tags
-        + strategy.short_pump_mode_tags
-        + strategy.short_quick_mode_tags
-        + strategy.short_rebuy_mode_tags
-        + strategy.short_high_profit_mode_tags
-        + strategy.short_rapid_mode_tags
-        + strategy.short_grind_mode_tags
-        + strategy.short_scalp_mode_tags
-      )
-      for c in enter_tags
-    )
-  ):
+  if trade.is_short and (not matches_any_short_mode(strategy, enter_tags)):
     # use normal mode for such trades
     exit_reason = call_custom_exit_mode(
       strategy.short_exit_normal,

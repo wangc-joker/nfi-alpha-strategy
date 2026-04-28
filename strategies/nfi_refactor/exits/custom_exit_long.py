@@ -1,6 +1,18 @@
 """Long-side custom exit routing extracted from NFI."""
 
 from nfi_refactor.exits.custom_exit_call import call_custom_exit_mode
+from nfi_refactor.exits.custom_exit_long_match import (
+  matches_long_btc,
+  matches_long_grind,
+  matches_long_high_profit,
+  matches_long_normal,
+  matches_long_pump,
+  matches_long_quick,
+  matches_long_rapid,
+  matches_long_rebuy,
+  matches_long_scalp,
+  matches_long_top_coins,
+)
 
 
 def route_long_custom_exit(
@@ -28,7 +40,7 @@ def route_long_custom_exit(
 ):
 
   # Long Normal mode
-  if any(c in strategy.long_normal_mode_tags for c in enter_tags):
+  if matches_long_normal(strategy, enter_tags):
     exit_reason = call_custom_exit_mode(
       strategy.long_exit_normal,
       enter_tag,
@@ -56,7 +68,7 @@ def route_long_custom_exit(
       return exit_reason
 
   # Long Pump mode
-  if any(c in strategy.long_pump_mode_tags for c in enter_tags):
+  if matches_long_pump(strategy, enter_tags):
     exit_reason = call_custom_exit_mode(
       strategy.long_exit_pump,
       enter_tag,
@@ -84,7 +96,7 @@ def route_long_custom_exit(
       return exit_reason
 
   # Long Quick mode
-  if any(c in strategy.long_quick_mode_tags for c in enter_tags):
+  if matches_long_quick(strategy, enter_tags):
     exit_reason = call_custom_exit_mode(
       strategy.long_exit_quick,
       enter_tag,
@@ -112,10 +124,7 @@ def route_long_custom_exit(
       return exit_reason
 
   # Long Rebuy mode
-  if all(c in strategy.long_rebuy_mode_tags for c in enter_tags) or (
-    any(c in strategy.long_rebuy_mode_tags for c in enter_tags)
-    and all(c in (strategy.long_rebuy_mode_tags + strategy.long_grind_mode_tags) for c in enter_tags)
-  ):
+  if matches_long_rebuy(strategy, enter_tags):
     exit_reason = call_custom_exit_mode(
       strategy.long_exit_rebuy,
       enter_tag,
@@ -143,7 +152,7 @@ def route_long_custom_exit(
       return exit_reason
 
   # Long high profit mode
-  if any(c in strategy.long_high_profit_mode_tags for c in enter_tags):
+  if matches_long_high_profit(strategy, enter_tags):
     exit_reason = call_custom_exit_mode(
       strategy.long_exit_high_profit,
       enter_tag,
@@ -171,16 +180,7 @@ def route_long_custom_exit(
       return exit_reason
 
   # Long rapid mode
-  if all(c in strategy.long_rapid_mode_tags for c in enter_tags) or (
-    any(c in strategy.long_rapid_mode_tags for c in enter_tags)
-    and all(
-      c
-      in (
-        strategy.long_rapid_mode_tags + strategy.long_rebuy_mode_tags + strategy.long_grind_mode_tags + strategy.long_scalp_mode_tags
-      )
-      for c in enter_tags
-    )
-  ):
+  if matches_long_rapid(strategy, enter_tags):
     exit_reason = call_custom_exit_mode(
       strategy.long_exit_rapid,
       enter_tag,
@@ -208,7 +208,7 @@ def route_long_custom_exit(
       return exit_reason
 
   # Long grind mode
-  if all(c in strategy.long_grind_mode_tags for c in enter_tags):
+  if matches_long_grind(strategy, enter_tags):
     exit_reason = call_custom_exit_mode(
       strategy.long_exit_grind,
       enter_tag,
@@ -236,7 +236,7 @@ def route_long_custom_exit(
       return exit_reason
 
   # Long btc mode
-  if all(c in strategy.long_btc_mode_tags for c in enter_tags):
+  if matches_long_btc(strategy, enter_tags):
     exit_reason = call_custom_exit_mode(
       strategy.long_exit_btc,
       enter_tag,
@@ -264,7 +264,7 @@ def route_long_custom_exit(
       return exit_reason
 
   # Long Top Coins mode
-  if any(c in strategy.long_top_coins_mode_tags for c in enter_tags):
+  if matches_long_top_coins(strategy, enter_tags):
     exit_reason = call_custom_exit_mode(
       strategy.long_exit_top_coins,
       enter_tag,
@@ -292,12 +292,7 @@ def route_long_custom_exit(
       return exit_reason
 
   # Long scalp mode
-  if all(c in strategy.long_scalp_mode_tags for c in enter_tags) or (
-    any(c in strategy.long_scalp_mode_tags for c in enter_tags)
-    and all(
-      c in (strategy.long_scalp_mode_tags + strategy.long_rebuy_mode_tags + strategy.long_grind_mode_tags) for c in enter_tags
-    )
-  ):
+  if matches_long_scalp(strategy, enter_tags):
     exit_reason = call_custom_exit_mode(
       strategy.long_exit_scalp,
       enter_tag,

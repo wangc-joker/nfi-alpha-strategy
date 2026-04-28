@@ -64,6 +64,7 @@ D:\test\NostalgiaForInfinity\NostalgiaForInfinityX7.py
 - [x] Extract and split custom exit orchestration.
 - [x] Extract shared custom exit reason formatter.
 - [x] Extract shared custom exit mode invocation helper.
+- [x] Extract custom exit long/short mode match predicates.
 - [x] Extract confirm_trade_exit.
 - [x] Extract and split profit target marker helper.
 - [x] Extract and split profit target exit decision helper.
