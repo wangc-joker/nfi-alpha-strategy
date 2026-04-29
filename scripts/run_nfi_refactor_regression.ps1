@@ -16,6 +16,37 @@ $expectedHalfyearTrades = 61
 $expectedHalfyearProfit = "1757.800"
 $expectedHalfyearReturn = "580.9"
 $expectedHalfyearWinrate = "100"
+$expectedHalfyearEnterTags = @(
+    @{ Tag = "120"; Entries = 4 },
+    @{ Tag = "145"; Entries = 6 },
+    @{ Tag = "120 142"; Entries = 1 },
+    @{ Tag = "4"; Entries = 1 },
+    @{ Tag = "3"; Entries = 2 },
+    @{ Tag = "144"; Entries = 6 },
+    @{ Tag = "104"; Entries = 2 },
+    @{ Tag = "2"; Entries = 2 },
+    @{ Tag = "142"; Entries = 4 },
+    @{ Tag = "6"; Entries = 1 },
+    @{ Tag = "143"; Entries = 5 },
+    @{ Tag = "141"; Entries = 5 },
+    @{ Tag = "41"; Entries = 1 },
+    @{ Tag = "2 141"; Entries = 1 },
+    @{ Tag = "45"; Entries = 1 },
+    @{ Tag = "61 162"; Entries = 1 },
+    @{ Tag = "62"; Entries = 3 },
+    @{ Tag = "61"; Entries = 2 },
+    @{ Tag = "42"; Entries = 1 },
+    @{ Tag = "46"; Entries = 1 },
+    @{ Tag = "141 142"; Entries = 2 },
+    @{ Tag = "43"; Entries = 1 },
+    @{ Tag = "5"; Entries = 1 },
+    @{ Tag = "142 145"; Entries = 1 },
+    @{ Tag = "501"; Entries = 1 },
+    @{ Tag = "141 142 143"; Entries = 1 },
+    @{ Tag = "6 120 141 142"; Entries = 1 },
+    @{ Tag = "163"; Entries = 1 },
+    @{ Tag = "63"; Entries = 2 }
+)
 
 function Invoke-Step {
     param(
@@ -153,6 +184,86 @@ function Invoke-Backtest {
     }
 }
 
+function Get-TableCells {
+    param([string]$Line)
+
+    $separator = [char]0x2502
+    if ($Line.IndexOf($separator) -lt 0) {
+        return @()
+    }
+
+    $parts = $Line.Split($separator)
+    if ($parts.Count -lt 3) {
+        return @()
+    }
+
+    return @($parts[1..($parts.Count - 2)] | ForEach-Object { $_.Trim() })
+}
+
+function Get-HalfyearEnterTagRows {
+    param([string]$BacktestText)
+
+    $sections = @()
+    $currentSection = $null
+
+    foreach ($line in ($BacktestText -split "`r?`n")) {
+        if ($line -match "ENTER TAG STATS") {
+            $currentSection = @()
+            continue
+        }
+
+        if ($null -ne $currentSection) {
+            if ($line -match "EXIT REASON STATS") {
+                if ($currentSection.Count -gt 0) {
+                    $sections += ,$currentSection
+                }
+                $currentSection = $null
+                continue
+            }
+
+            $cells = Get-TableCells $line
+            if ($cells.Count -ge 2 -and $cells[0] -notmatch "Enter Tag" -and $cells[0] -notmatch "^[\s]*$") {
+                $entryCount = 0
+                if ([int]::TryParse($cells[1], [ref]$entryCount)) {
+                    $currentSection += [pscustomobject]@{
+                        Tag = $cells[0]
+                        Entries = $entryCount
+                    }
+                }
+            }
+        }
+    }
+
+    $matchingSection = $sections | Where-Object {
+        $total = $_ | Where-Object { $_.Tag -eq "TOTAL" } | Select-Object -First 1
+        $total -and $total.Entries -eq $expectedHalfyearTrades
+    } | Select-Object -Last 1
+
+    if (-not $matchingSection) {
+        throw "Halfyear parity changed: ENTER TAG STATS section with $expectedHalfyearTrades total entries not found."
+    }
+
+    return @($matchingSection | Where-Object { $_.Tag -ne "TOTAL" })
+}
+
+function Assert-HalfyearEnterTagDistribution {
+    param([string]$BacktestText)
+
+    $actualRows = Get-HalfyearEnterTagRows $BacktestText
+    if ($actualRows.Count -ne $expectedHalfyearEnterTags.Count) {
+        throw "Halfyear enter tag distribution changed: expected $($expectedHalfyearEnterTags.Count) tags, got $($actualRows.Count)."
+    }
+
+    for ($index = 0; $index -lt $expectedHalfyearEnterTags.Count; $index++) {
+        $expected = $expectedHalfyearEnterTags[$index]
+        $actual = $actualRows[$index]
+
+        if ($actual.Tag -ne $expected.Tag -or $actual.Entries -ne $expected.Entries) {
+            throw "Halfyear enter tag distribution changed at row $($index + 1): expected '$($expected.Tag)'/$($expected.Entries), got '$($actual.Tag)'/$($actual.Entries)."
+        }
+    }
+}
+
 function Assert-HalfyearParity {
     param([string]$BacktestText)
 
@@ -175,6 +286,8 @@ function Assert-HalfyearParity {
     if ($totalLine -notmatch "\b$expectedHalfyearWinrate\b") {
         throw "Halfyear parity changed: expected $expectedHalfyearWinrate% win rate. TOTAL line: $totalLine"
     }
+
+    Assert-HalfyearEnterTagDistribution -BacktestText $BacktestText
 }
 
 Write-Host "NFI refactor regression baseline:"

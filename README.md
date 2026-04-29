@@ -54,6 +54,7 @@ short smoke backtest 20260401-20260403
 ```text
 halfyear no-cache backtest 20251016-20260415
 expected 61 trades / +1757.800 USDT / +580.90%
+expected enter tag distribution
 ```
 
 如果只是想跳过提前的 Binance endpoint 检查，可以加：

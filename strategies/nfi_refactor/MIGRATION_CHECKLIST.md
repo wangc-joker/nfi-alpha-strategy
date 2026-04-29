@@ -147,7 +147,7 @@ For every extracted module:
 - [x] Trade count remains close.
 - [x] Profit remains close.
 - [x] Drawdown remains close.
-- [ ] Entry tag distribution remains close.
+- [x] Entry tag distribution remains close.
 - [x] Long/short split remains close.
 
 ## Step 4: Post-Parity Improvements
