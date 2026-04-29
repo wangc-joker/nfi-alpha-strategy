@@ -144,11 +144,11 @@ For every extracted module:
 - [x] Add reusable NFI refactor regression check script.
 - [x] Strategy loads.
 - [x] Backtest completes.
-- [ ] Trade count remains close.
-- [ ] Profit remains close.
-- [ ] Drawdown remains close.
+- [x] Trade count remains close.
+- [x] Profit remains close.
+- [x] Drawdown remains close.
 - [ ] Entry tag distribution remains close.
-- [ ] Long/short split remains close.
+- [x] Long/short split remains close.
 
 ## Step 4: Post-Parity Improvements
 

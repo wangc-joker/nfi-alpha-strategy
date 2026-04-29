@@ -45,6 +45,7 @@ powershell -ExecutionPolicy Bypass -File D:\test\nfi-alpha-strategy\scripts\run_
 unittest
 py_compile
 sync strategy to ft_userdata
+Binance exchange preflight
 short smoke backtest 20260401-20260403
 ```
 
@@ -54,3 +55,11 @@ short smoke backtest 20260401-20260403
 halfyear no-cache backtest 20251016-20260415
 expected 61 trades / +1757.800 USDT / +580.90%
 ```
+
+如果只是想跳过提前的 Binance endpoint 检查，可以加：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File D:\test\nfi-alpha-strategy\scripts\run_nfi_refactor_regression.ps1 -SkipExchangePreflight
+```
+
+注意：`-SkipExchangePreflight` 只是不做提前网络探测；Freqtrade 回测本身仍可能因为 Binance `exchangeInfo` 无法访问而失败。

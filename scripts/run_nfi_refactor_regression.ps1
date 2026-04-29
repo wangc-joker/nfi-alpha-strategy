@@ -2,7 +2,8 @@ param(
     [string]$FtUserDataRoot = "D:\test\ft_userdata",
     [string]$SmokeTimerange = "20260401-20260403",
     [string]$HalfyearTimerange = "20251016-20260415",
-    [switch]$RunHalfyear
+    [switch]$RunHalfyear,
+    [switch]$SkipExchangePreflight
 )
 
 $ErrorActionPreference = "Stop"
@@ -58,6 +59,60 @@ function Invoke-FreqtradePython {
     Write-Output $output
     if ($exitCode -ne 0) {
         throw (Format-CommandFailure "Freqtrade python command failed with exit code $exitCode." $output)
+    }
+}
+
+function Invoke-DockerPythonInline {
+    param([string]$Code)
+
+    $encodedCode = [Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($Code))
+    $runnerCode = "import base64; exec(base64.b64decode('$encodedCode').decode('utf-8'))"
+
+    $previousErrorActionPreference = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    try {
+        $output = docker compose -f $composeFile run --rm --entrypoint python freqtrade -c $runnerCode 2>&1
+    }
+    finally {
+        $ErrorActionPreference = $previousErrorActionPreference
+    }
+
+    $exitCode = $LASTEXITCODE
+    $output = $output | ForEach-Object { $_.ToString() }
+    Write-Output $output
+    if ($exitCode -ne 0) {
+        throw (Format-CommandFailure "Docker python inline command failed with exit code $exitCode." $output)
+    }
+}
+
+function Test-BinanceExchangeInfo {
+    $code = @'
+import urllib.request
+
+endpoints = [
+    "https://api.binance.com/api/v3/exchangeInfo",
+    "https://dapi.binance.com/dapi/v1/exchangeInfo",
+]
+
+for url in endpoints:
+    try:
+        with urllib.request.urlopen(url, timeout=15) as response:
+            status = response.status
+            if status != 200:
+                raise RuntimeError(f"HTTP {status}")
+            first_bytes = response.read(128)
+            if not first_bytes:
+                raise RuntimeError("empty response")
+            print(f"OK {url} status={status}")
+    except Exception as exc:
+        raise SystemExit(f"FAILED {url}: {exc.__class__.__name__}: {exc}")
+'@
+
+    try {
+        Invoke-DockerPythonInline $code
+    }
+    catch {
+        throw ("Binance exchange preflight failed. Freqtrade backtests need Binance exchangeInfo before local historical data can run." + [Environment]::NewLine + $_.Exception.Message)
     }
 }
 
@@ -171,6 +226,12 @@ Invoke-Step "Sync strategy to ft_userdata" {
     Write-Output $output
     if ($exitCode -ne 0) {
         throw (Format-CommandFailure "Strategy sync failed with exit code $exitCode." $output)
+    }
+}
+
+if (-not $SkipExchangePreflight) {
+    Invoke-Step "Binance exchange preflight" {
+        Test-BinanceExchangeInfo
     }
 }
 
