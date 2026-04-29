@@ -311,6 +311,7 @@ Invoke-Step "Compile NFI refactor files" {
         "-m", "py_compile",
         "/work/strategies/NFIRefactorStrategy.py",
         "/work/strategies/NFIAlphaHybridStrategy.py",
+        "/work/strategies/nfi_refactor/alpha_hybrid/reversal216.py",
         "/work/strategies/nfi_refactor/position/adjustment.py",
         "/work/strategies/nfi_refactor/position/adjustment_context.py",
         "/work/strategies/nfi_refactor/position/adjustment_execution.py",
