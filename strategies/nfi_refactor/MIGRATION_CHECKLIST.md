@@ -142,8 +142,8 @@ D:\test\NostalgiaForInfinity\NostalgiaForInfinityX7.py
 For every extracted module:
 
 - [x] Add reusable NFI refactor regression check script.
-- [ ] Strategy loads.
-- [ ] Backtest completes.
+- [x] Strategy loads.
+- [x] Backtest completes.
 - [ ] Trade count remains close.
 - [ ] Profit remains close.
 - [ ] Drawdown remains close.

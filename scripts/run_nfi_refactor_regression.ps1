@@ -11,6 +11,10 @@ $repoRoot = Split-Path -Parent $PSScriptRoot
 $composeFile = Join-Path $FtUserDataRoot "docker-compose.yml"
 $targetStrategyDir = Join-Path $FtUserDataRoot "user_data\strategies"
 $configName = "config.backtest.dynamic.top40.302u.max2.halfyear.balanced.json"
+$expectedHalfyearTrades = 61
+$expectedHalfyearProfit = "1757.800"
+$expectedHalfyearReturn = "580.9"
+$expectedHalfyearWinrate = "100"
 
 function Invoke-Step {
     param(
@@ -53,6 +57,37 @@ function Invoke-Backtest {
     }
 
     docker compose -f $composeFile run --rm freqtrade @args
+}
+
+function Assert-HalfyearParity {
+    param([string]$BacktestText)
+
+    $totalLine = ($BacktestText -split "`r?`n" | Where-Object {
+        $_ -match "\bTOTAL\b" -and $_ -match [regex]::Escape($expectedHalfyearProfit)
+    } | Select-Object -First 1)
+
+    if (-not $totalLine) {
+        throw "Halfyear parity changed: TOTAL line not found."
+    }
+    if ($totalLine -notmatch "\bTOTAL\b.*\b$expectedHalfyearTrades\b") {
+        throw "Halfyear parity changed: expected $expectedHalfyearTrades trades. TOTAL line: $totalLine"
+    }
+    if ($totalLine -notmatch [regex]::Escape($expectedHalfyearProfit)) {
+        throw "Halfyear parity changed: expected +$expectedHalfyearProfit USDT profit. TOTAL line: $totalLine"
+    }
+    if ($totalLine -notmatch [regex]::Escape($expectedHalfyearReturn)) {
+        throw "Halfyear parity changed: expected +$expectedHalfyearReturn% return. TOTAL line: $totalLine"
+    }
+    if ($totalLine -notmatch "\b$expectedHalfyearWinrate\b") {
+        throw "Halfyear parity changed: expected $expectedHalfyearWinrate% win rate. TOTAL line: $totalLine"
+    }
+}
+
+Write-Host "NFI refactor regression baseline:"
+Write-Host "  Smoke timerange: $SmokeTimerange -> expected no trades"
+if ($RunHalfyear) {
+    Write-Host "  Halfyear timerange: $HalfyearTimerange"
+    Write-Host "  Expected: $expectedHalfyearTrades trades / +$expectedHalfyearProfit USDT / +$expectedHalfyearReturn% / $expectedHalfyearWinrate% winrate"
 }
 
 Invoke-Step "Unit tests" {
@@ -102,18 +137,7 @@ if ($RunHalfyear) {
         $halfyearText = $halfyearOutput -join [Environment]::NewLine
         Write-Output $halfyearOutput
 
-        if ($halfyearText -notmatch "TOTAL\s+.*\s61\s+") {
-            throw "Halfyear parity changed: expected 61 trades."
-        }
-        if ($halfyearText -notmatch "1757\.800") {
-            throw "Halfyear parity changed: expected +1757.800 USDT profit."
-        }
-        if ($halfyearText -notmatch "580\.9") {
-            throw "Halfyear parity changed: expected +580.90% return."
-        }
-        if ($halfyearText -notmatch "100") {
-            throw "Halfyear parity changed: expected 100% win rate marker."
-        }
+        Assert-HalfyearParity -BacktestText $halfyearText
     }
 }
 
