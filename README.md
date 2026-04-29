@@ -24,3 +24,33 @@
 - `scripts`：数据下载、回测、报告生成、部署辅助脚本。
 - `research`：实验记录、指标研究、策略假设和分析报告。
 - `tests`：单元测试、策略组件测试、回归验证。
+
+## NFI 重构回归检查
+
+日常轻量检查：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File D:\test\nfi-alpha-strategy\scripts\run_nfi_refactor_regression.ps1
+```
+
+关键改动后的半年 no-cache parity 检查：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File D:\test\nfi-alpha-strategy\scripts\run_nfi_refactor_regression.ps1 -RunHalfyear
+```
+
+默认轻量检查会执行：
+
+```text
+unittest
+py_compile
+sync strategy to ft_userdata
+short smoke backtest 20260401-20260403
+```
+
+`-RunHalfyear` 会额外执行：
+
+```text
+halfyear no-cache backtest 20251016-20260415
+expected 61 trades / +1757.800 USDT / +580.90%
+```
