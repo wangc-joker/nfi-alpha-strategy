@@ -8,13 +8,91 @@ from nfi_refactor.alpha_hybrid.entry import (
 from nfi_refactor.alpha_hybrid.risk import global_loss_exit
 
 
+class _RiskEntryFilterMixin:
+    risk_blocked_base_coins = set()
+    risk_blocked_pair_tags = set()
+
+    def _is_risk_blocked_entry(self, pair: str, entry_tag) -> bool:
+        base_coin = pair.split("/")[0]
+        if base_coin in self.risk_blocked_base_coins:
+            return True
+
+        tags = set(str(entry_tag or "").split())
+        for blocked_pair, blocked_tag in self.risk_blocked_pair_tags:
+            if pair == blocked_pair and blocked_tag in tags:
+                return True
+
+        return False
+
+    def confirm_trade_entry(
+        self,
+        pair: str,
+        order_type: str,
+        amount: float,
+        rate: float,
+        time_in_force: str,
+        current_time,
+        entry_tag,
+        side: str,
+        **kwargs,
+    ) -> bool:
+        if self._is_risk_blocked_entry(pair, entry_tag):
+            return False
+
+        return super().confirm_trade_entry(
+            pair,
+            order_type,
+            amount,
+            rate,
+            time_in_force,
+            current_time,
+            entry_tag,
+            side,
+            **kwargs,
+        )
+
+
+class NFIRefactorLowLeverageStrategy(NFIRefactorStrategy):
+    """Experimental NFI variant using 1x leverage to reduce floating-loss severity."""
+
+    futures_mode_leverage = 1.0
+    futures_mode_leverage_rebuy_mode = 1.0
+    futures_mode_leverage_grind_mode = 1.0
+
+    def version(self) -> str:
+        return "nfi-refactor-low-leverage-0.1.0"
+
+
+class NFIRefactorRiskBalancedStrategy(_RiskEntryFilterMixin, NFIRefactorLowLeverageStrategy):
+    """Experimental NFI 1x variant filtering historically deep floating-loss entries."""
+
+    risk_blocked_base_coins = {"ZEC"}
+    risk_blocked_pair_tags = {("CRV/USDT:USDT", "120")}
+
+    def version(self) -> str:
+        return "nfi-refactor-risk-balanced-0.1.0"
+
+
+class NFIRefactorRiskStrictStrategy(NFIRefactorRiskBalancedStrategy):
+    """Experimental NFI 1x variant targeting sub-15% estimated max floating loss."""
+
+    risk_blocked_pair_tags = {
+        ("CRV/USDT:USDT", "120"),
+        ("UNI/USDT:USDT", "120"),
+        ("HYPE/USDT:USDT", "120"),
+    }
+
+    def version(self) -> str:
+        return "nfi-refactor-risk-strict-0.1.0"
+
+
 class NFIAlphaHybridStrategy(NFIRefactorStrategy):
     """Experimental strategy: NFI management plus DoubleShun-style entries."""
 
     alpha_hybrid_entries_enabled = True
     alpha_hybrid_long_entries_enabled = True
     alpha_hybrid_short_entries_enabled = False
-    alpha_global_loss_stop_enabled = True
+    alpha_global_loss_stop_enabled = False
     alpha_global_loss_ratio = 0.05
 
     alpha_allowed_coins = {
@@ -84,3 +162,23 @@ class NFIAlphaHybridStrategy(NFIRefactorStrategy):
             current_profit,
             **kwargs,
         )
+
+
+class NFIAlphaHybridLowLeverageStrategy(NFIAlphaHybridStrategy):
+    """Experimental NFI+alpha variant using 1x leverage to reduce floating loss."""
+
+    futures_mode_leverage = 1.0
+    futures_mode_leverage_rebuy_mode = 1.0
+    futures_mode_leverage_grind_mode = 1.0
+
+    def version(self) -> str:
+        return "nfi-alpha-hybrid-low-leverage-0.1.0"
+
+
+class NFIAlphaHybridRiskBalancedStrategy(_RiskEntryFilterMixin, NFIAlphaHybridLowLeverageStrategy):
+    """Experimental NFI+alpha 1x variant filtering historically deep floating-loss entries."""
+
+    risk_blocked_base_coins = {"ZEC"}
+
+    def version(self) -> str:
+        return "nfi-alpha-hybrid-risk-balanced-0.1.0"
