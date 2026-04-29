@@ -107,3 +107,25 @@ def route_short_grind_adjustment(
     return call_adjustment_handler(adjustment_func, context)
 
   return None
+
+
+def route_grind_adjustment(
+  strategy,
+  context: AdjustmentCallContext,
+  state: AdjustmentModeState,
+):
+  if not context.trade.is_short:
+    return route_long_grind_adjustment(
+      strategy,
+      context,
+      state,
+    )
+
+  if context.trade.is_short:
+    return route_short_grind_adjustment(
+      strategy,
+      context,
+      state,
+    )
+
+  return None

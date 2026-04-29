@@ -8,10 +8,7 @@ from nfi_refactor.position.adjustment_context import (
   build_adjustment_mode_state,
   get_adjustment_enter_tags,
 )
-from nfi_refactor.position.adjustment_grind_route import (
-  route_long_grind_adjustment,
-  route_short_grind_adjustment,
-)
+from nfi_refactor.position.adjustment_grind_route import route_grind_adjustment
 from nfi_refactor.position.adjustment_rebuy_route import route_rebuy_adjustment
 
 
@@ -56,18 +53,8 @@ def adjust_trade_position(
   if handled:
     return adjustment
 
-  if not trade.is_short:
-    return route_long_grind_adjustment(
-      strategy,
-      context,
-      state,
-    )
-
-  if trade.is_short:
-    return route_short_grind_adjustment(
-      strategy,
-      context,
-      state,
-    )
-
-  return None
+  return route_grind_adjustment(
+    strategy,
+    context,
+    state,
+  )
