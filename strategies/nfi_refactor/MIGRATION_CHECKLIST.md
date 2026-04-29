@@ -113,6 +113,7 @@ D:\test\NostalgiaForInfinity\NostalgiaForInfinityX7.py
 - [x] Split grind adjustment tag matching helpers into dedicated module.
 - [x] Split grind adjustment handler selectors into dedicated module.
 - [x] Add lightweight tests for grind adjustment helpers.
+- [x] Add lightweight tests for rebuy adjustment route helpers.
 - [x] Extract rebuy position adjustment handlers.
 - [x] Extract rebuy position adjustment shared context.
 - [x] Extract rebuy position adjustment return helpers.
@@ -154,3 +155,4 @@ Only after parity:
 - [ ] Improve dynamic coin universe.
 - [ ] Revisit short signal quality.
 - [ ] Tune stake sizing and max open trades.
+
