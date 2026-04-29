@@ -28,12 +28,37 @@ function Invoke-Step {
     Write-Host "OK: $Name"
 }
 
+function Format-CommandFailure {
+    param(
+        [string]$Message,
+        [object[]]$Output,
+        [int]$TailLines = 80
+    )
+
+    $tail = $Output | Select-Object -Last $TailLines
+    return ($Message + [Environment]::NewLine + ($tail -join [Environment]::NewLine))
+}
+
 function Invoke-FreqtradePython {
     param([string[]]$Args)
 
-    docker compose -f $composeFile run --rm --entrypoint python `
-        -v "${repoRoot}:/work" `
-        freqtrade @Args
+    $previousErrorActionPreference = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    try {
+        $output = docker compose -f $composeFile run --rm --entrypoint python `
+            -v "${repoRoot}:/work" `
+            freqtrade @Args 2>&1
+    }
+    finally {
+        $ErrorActionPreference = $previousErrorActionPreference
+    }
+
+    $exitCode = $LASTEXITCODE
+    $output = $output | ForEach-Object { $_.ToString() }
+    Write-Output $output
+    if ($exitCode -ne 0) {
+        throw (Format-CommandFailure "Freqtrade python command failed with exit code $exitCode." $output)
+    }
 }
 
 function Invoke-Backtest {
@@ -56,7 +81,21 @@ function Invoke-Backtest {
         $args += @("--cache", "none")
     }
 
-    docker compose -f $composeFile run --rm freqtrade @args
+    $previousErrorActionPreference = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    try {
+        $output = docker compose -f $composeFile run --rm freqtrade @args 2>&1
+    }
+    finally {
+        $ErrorActionPreference = $previousErrorActionPreference
+    }
+
+    $exitCode = $LASTEXITCODE
+    $output = $output | ForEach-Object { $_.ToString() }
+    Write-Output $output
+    if ($exitCode -ne 0) {
+        throw (Format-CommandFailure "Freqtrade backtest command failed with exit code $exitCode." $output)
+    }
 }
 
 function Assert-HalfyearParity {
@@ -116,9 +155,23 @@ Invoke-Step "Compile NFI refactor files" {
 }
 
 Invoke-Step "Sync strategy to ft_userdata" {
-    powershell -ExecutionPolicy Bypass -File `
-        (Join-Path $repoRoot "scripts\sync_strategy_to_ft_userdata.ps1") `
-        -TargetStrategyDir $targetStrategyDir
+    $previousErrorActionPreference = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    try {
+        $output = powershell -ExecutionPolicy Bypass -File `
+            (Join-Path $repoRoot "scripts\sync_strategy_to_ft_userdata.ps1") `
+            -TargetStrategyDir $targetStrategyDir 2>&1
+    }
+    finally {
+        $ErrorActionPreference = $previousErrorActionPreference
+    }
+
+    $exitCode = $LASTEXITCODE
+    $output = $output | ForEach-Object { $_.ToString() }
+    Write-Output $output
+    if ($exitCode -ne 0) {
+        throw (Format-CommandFailure "Strategy sync failed with exit code $exitCode." $output)
+    }
 }
 
 Invoke-Step "Smoke backtest $SmokeTimerange" {
