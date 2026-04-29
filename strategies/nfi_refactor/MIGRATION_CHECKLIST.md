@@ -109,6 +109,7 @@ D:\test\NostalgiaForInfinity\NostalgiaForInfinityX7.py
 - [x] Split grind adjustment routing into dedicated module.
 - [x] Remove position adjustment detail compatibility route layer.
 - [x] Extract position adjustment grind direction router.
+- [x] Extract position adjustment grind route selector.
 - [x] Extract rebuy position adjustment handlers.
 - [x] Extract rebuy position adjustment shared context.
 - [x] Extract rebuy position adjustment return helpers.
