@@ -106,6 +106,8 @@ D:\test\NostalgiaForInfinity\NostalgiaForInfinityX7.py
 - [x] Extract position adjustment mode predicate helpers.
 - [x] Split position adjustment context/state helpers into dedicated module.
 - [x] Split rebuy adjustment routing into dedicated module.
+- [x] Split rebuy adjustment tag matching helpers into dedicated module.
+- [x] Split rebuy adjustment handler selectors into dedicated module.
 - [x] Split grind adjustment routing into dedicated module.
 - [x] Remove position adjustment detail compatibility route layer.
 - [x] Extract position adjustment grind direction router.
@@ -155,4 +157,3 @@ Only after parity:
 - [ ] Improve dynamic coin universe.
 - [ ] Revisit short signal quality.
 - [ ] Tune stake sizing and max open trades.
-
