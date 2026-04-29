@@ -94,7 +94,7 @@ D:\test\NostalgiaForInfinity\NostalgiaForInfinityX7.py
 - [x] Extract small position adjustment helper methods.
 - [x] Extract total profit calculation helper.
 - [x] Split experimental grind adjustment handlers into long/short v2/v3 modules.
-- [ ] Investigate grind adjustment detail handler parity drift.
+- [x] Investigate grind adjustment detail handler parity drift.
 - [x] Split position adjustment helper predicates into long/short modules.
 - [x] Extract position adjustment detail handlers.
 - [x] Extract position adjustment call context object.
@@ -116,6 +116,7 @@ D:\test\NostalgiaForInfinity\NostalgiaForInfinityX7.py
 - [x] Split grind adjustment handler selectors into dedicated module.
 - [x] Add lightweight tests for grind adjustment helpers.
 - [x] Add lightweight tests for rebuy adjustment route helpers.
+- [x] Add guard test to keep experimental grind adjustment handlers unwired.
 - [x] Extract rebuy position adjustment handlers.
 - [x] Extract rebuy position adjustment shared context.
 - [x] Extract rebuy position adjustment return helpers.
