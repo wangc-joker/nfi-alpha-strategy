@@ -112,6 +112,7 @@ D:\test\NostalgiaForInfinity\NostalgiaForInfinityX7.py
 - [x] Extract position adjustment grind route selector.
 - [x] Split grind adjustment tag matching helpers into dedicated module.
 - [x] Split grind adjustment handler selectors into dedicated module.
+- [x] Add lightweight tests for grind adjustment helpers.
 - [x] Extract rebuy position adjustment handlers.
 - [x] Extract rebuy position adjustment shared context.
 - [x] Extract rebuy position adjustment return helpers.
