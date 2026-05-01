@@ -137,9 +137,7 @@ FreqAI 后期可以研究，但不能一开始主导交易。
 策略版本：
 
 ```text
-AlphaRegimeStrategy_v0_1
-AlphaRegimeStrategy_v0_2
-AlphaRegimeStrategy_v1_0
+NFIRefactorStrategy_v0_1\r\nNFIReversal216ShortAggressiveHybridStrategy_v0_1
 ```
 
 信号版本：
@@ -153,9 +151,7 @@ breakout_follow_v1
 配置版本：
 
 ```text
-config.backtest.alpha.top9.300u.json
-config.backtest.alpha.top30.500u.json
-config.dryrun.alpha.top30.300u.json
+config.backtest.nfi.top9.1000u.max4.3y.json\r\nconfig.backtest.nfi.top40.300u.max2.json\r\nconfig.dryrun.nfi.top30.300u.json
 ```
 
 ## 10. 判断一个改动是否值得保留
@@ -170,4 +166,3 @@ config.dryrun.alpha.top30.300u.json
 - 提高代码可维护性。
 
 如果只在一个很短区间提升收益，但其他区间变差，默认不合并到主流程。
-
