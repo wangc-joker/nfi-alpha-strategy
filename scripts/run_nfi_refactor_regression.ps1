@@ -310,6 +310,7 @@ Invoke-Step "Compile NFI refactor files" {
     Invoke-FreqtradePython @(
         "-m", "py_compile",
         "/work/strategies/NFIRefactorStrategy.py",
+        "/work/strategies/NFIRiskDurationStrategy.py",
         "/work/strategies/nfi_refactor/position/adjustment.py",
         "/work/strategies/nfi_refactor/position/adjustment_context.py",
         "/work/strategies/nfi_refactor/position/adjustment_execution.py",
