@@ -44,7 +44,7 @@ class NFIRefactorStrategy(NostalgiaForInfinityX7):
         initialization.initialize_strategy(self, config)
 
     def version(self) -> str:
-        return "nfi-refactor-parity-adapter-0.1.0"
+        return "nfi-refactor-parity-adapter-upstream-v17.4.43-0.2.0"
 
     def informative_pairs(self):
         return build_informative_pairs(
@@ -94,7 +94,9 @@ class NFIRefactorStrategy(NostalgiaForInfinityX7):
         return pipeline.populate_indicators(self, df, metadata)
 
     def populate_entry_trend(self, df, metadata: dict):
-        return entry_trend.populate_entry_trend(self, df, metadata)
+        # Upstream X7 v17.4.15 -> v17.4.43 changed many entry protections.
+        # Delegate this surface to the parent until those changes are re-split.
+        return super().populate_entry_trend(df, metadata)
 
     def confirm_trade_entry(
         self,
@@ -428,7 +430,7 @@ class NFIRefactorStrategy(NostalgiaForInfinityX7):
         return exit_mode_advanced.short_exit_rapid(self, *args, **kwargs)
 
     def long_exit_rebuy(self, *args, **kwargs):
-        return exit_mode_advanced.long_exit_rebuy(self, *args, **kwargs)
+        return super().long_exit_rebuy(*args, **kwargs)
 
     def short_exit_rebuy(self, *args, **kwargs):
         return exit_mode_advanced.short_exit_rebuy(self, *args, **kwargs)
@@ -450,8 +452,8 @@ class NFIRefactorStrategy(NostalgiaForInfinityX7):
         current_exit_profit: float,
         **kwargs,
     ):
-        return adjustment_module.adjust_trade_position(
-            self,
+        # Upstream changed v3 rebuy/grind de-risk routing; keep parity first.
+        return super().adjust_trade_position(
             trade,
             current_time,
             current_rate,
@@ -469,13 +471,13 @@ class NFIRefactorStrategy(NostalgiaForInfinityX7):
         return rebuy_adjustment.long_rebuy_adjust_trade_position(self, *args, **kwargs)
 
     def long_rebuy_adjust_trade_position_v3(self, *args, **kwargs):
-        return rebuy_adjustment.long_rebuy_adjust_trade_position_v3(self, *args, **kwargs)
+        return super().long_rebuy_adjust_trade_position_v3(*args, **kwargs)
 
     def short_rebuy_adjust_trade_position(self, *args, **kwargs):
         return rebuy_adjustment.short_rebuy_adjust_trade_position(self, *args, **kwargs)
 
     def short_rebuy_adjust_trade_position_v3(self, *args, **kwargs):
-        return rebuy_adjustment.short_rebuy_adjust_trade_position_v3(self, *args, **kwargs)
+        return super().short_rebuy_adjust_trade_position_v3(*args, **kwargs)
 
     def long_buyback_entry_v2(self, *args, **kwargs):
         return adjustment_helpers.long_buyback_entry_v2(self, *args, **kwargs)
@@ -490,7 +492,7 @@ class NFIRefactorStrategy(NostalgiaForInfinityX7):
         return adjustment_helpers.long_grind_exit_v2(self, *args, **kwargs)
 
     def long_grind_entry_v3(self, *args, **kwargs):
-        return adjustment_helpers.long_grind_entry_v3(self, *args, **kwargs)
+        return super().long_grind_entry_v3(*args, **kwargs)
 
     def long_buyback_entry_v3(self, *args, **kwargs):
         return adjustment_helpers.long_buyback_entry_v3(self, *args, **kwargs)
@@ -514,7 +516,7 @@ class NFIRefactorStrategy(NostalgiaForInfinityX7):
         return adjustment_helpers.short_grind_exit_v2(self, *args, **kwargs)
 
     def short_grind_entry_v3(self, *args, **kwargs):
-        return adjustment_helpers.short_grind_entry_v3(self, *args, **kwargs)
+        return super().short_grind_entry_v3(*args, **kwargs)
 
     def short_rebuy_entry_v3(self, *args, **kwargs):
         return adjustment_helpers.short_rebuy_entry_v3(self, *args, **kwargs)
