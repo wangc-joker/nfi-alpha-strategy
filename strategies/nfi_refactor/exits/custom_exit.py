@@ -13,6 +13,8 @@ def custom_exit(
   strategy, pair: str, trade: "Trade", current_time: "datetime", current_rate: float, current_profit: float, **kwargs
 ):
   context = prepare_custom_exit_context(strategy, pair, trade, current_rate)
+  if context is None:
+    return None
 
   exit_reason = route_long_custom_exit(strategy, pair, trade, current_time, current_rate, **context)
   if exit_reason is not None:

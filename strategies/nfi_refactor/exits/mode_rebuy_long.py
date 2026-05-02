@@ -105,14 +105,17 @@ def long_exit_rebuy(
     # Stoplosses
     if not sell:
       if is_system_v3_2:
-        if profit_stake < -(
-          filled_entries[0].cost
-          * (
-            self.system_v3_2_stop_threshold_futures_rebuy
-            if self.is_futures_mode
-            else self.system_v3_2_stop_threshold_spot_rebuy
+        if self.system_v3_2_stops_enable and (
+          profit_stake
+          < -(
+            filled_entries[0].cost
+            * (
+              self.system_v3_2_stop_threshold_futures_rebuy
+              if self.is_futures_mode
+              else self.system_v3_2_stop_threshold_spot_rebuy
+            )
+            / trade.leverage
           )
-          / trade.leverage
         ):
           sell, signal_name = True, f"exit_{self.long_rebuy_mode_name}_stoploss_doom"
       elif is_system_v3_1:

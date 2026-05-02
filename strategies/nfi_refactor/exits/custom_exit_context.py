@@ -1,8 +1,10 @@
 """Custom exit context preparation extracted from NFI."""
 
 
-def prepare_custom_exit_context(strategy, pair: str, trade, current_rate: float) -> dict:
+def prepare_custom_exit_context(strategy, pair: str, trade, current_rate: float):
   df, _ = strategy.dp.get_analyzed_dataframe(pair, strategy.timeframe)
+  if len(df) < 6:
+    return None
   last_candle = df.iloc[-1].squeeze()
   previous_candle_1 = df.iloc[-2].squeeze()
   previous_candle_2 = df.iloc[-3].squeeze()
