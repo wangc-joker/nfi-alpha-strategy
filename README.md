@@ -2,65 +2,60 @@
 
 这是一个独立于 `NostalgiaForInfinity` 和 `real_trade` 的长期策略研发工程。
 
-当前路线已经调整：先以 NFI 为参考实现进行模块化重构，第一目标是尽量对齐原版 NFI 回测结果，然后再在重构版基础上改造和调优。
+当前主线已经收口为：**原版 NFI X7 + RecoveryCutGentle 风控包装层**。
 
-## 工程定位
+也就是说，本仓库不再把完全重构 NFI 作为当前主线，而是通过包装原版 `NostalgiaForInfinityX7.py` 的方式维护优化策略。以后上游 NFI 更新时，优先替换原版 NFI 文件，再验证包装层是否正常。
 
-- `NostalgiaForInfinity`：上游参考策略仓库，不在里面直接开发新策略。
-- `real_trade`：实盘运行仓库，只放稳定配置、启动脚本和部署相关内容。
-- `nfi-alpha-strategy`：新策略研发主仓库，负责研究、设计、实现、测试、文档和长期演进。
+## 当前主线文件
 
-## 先读文档
+- `strategies/NFIRiskDurationStrategy.py`：当前主策略，继承原版 `NostalgiaForInfinityX7` 并叠加 RecoveryCutGentle 风控。
+- `scripts/sync_recovery_cut_gentle_wrapper.ps1`：把上游 NFI 原策略和当前包装策略同步到 Freqtrade `user_data/strategies`。
+- `docs/当前进度说明.md`：当前状态、关键回测结果和下一步计划。
 
-1. [工程设计总纲](D:\test\nfi-alpha-strategy\docs\工程设计总纲.md)
-2. [AI协作与长期维护规范](D:\test\nfi-alpha-strategy\docs\AI协作与长期维护规范.md)
-3. [NFI重构与改造路线图](D:\test\nfi-alpha-strategy\docs\NFI重构与改造路线图.md)
+## 旧路线归档
 
-## 目录说明
+早期的从零设计路线和 NFI 完全重构路线已归档到：
 
-- `docs`：工程总纲、架构设计、迭代计划、复盘记录。
-- `strategies`：Freqtrade 策略文件和可插拔信号模块。
-- `configs`：回测、模拟盘、实盘配置模板。
-- `scripts`：数据下载、回测、报告生成、部署辅助脚本。
-- `research`：实验记录、指标研究、策略假设和分析报告。
-- `tests`：单元测试、策略组件测试、回归验证。
+`archive/重构旧路线/`
 
-## NFI 重构回归检查
+归档内容包括：
 
-日常轻量检查：
+- `AlphaRegimeStrategy.py`
+- `alpha_modules/`
+- `NFIRefactorStrategy.py`
+- `nfi_refactor/`
+- 旧路线专用脚本、配置和测试
 
-```powershell
-powershell -ExecutionPolicy Bypass -File D:\test\nfi-alpha-strategy\scripts\run_nfi_refactor_regression.ps1
-```
+这些文件不再作为当前主线运行，但保留用于学习 NFI 结构、查阅历史实验和未来可能的模块迁移。
 
-关键改动后的半年 no-cache parity 检查：
+## 同步当前主线到 Freqtrade
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File D:\test\nfi-alpha-strategy\scripts\run_nfi_refactor_regression.ps1 -RunHalfyear
+powershell -ExecutionPolicy Bypass -File D:\test\nfi-alpha-strategy\scripts\sync_recovery_cut_gentle_wrapper.ps1
 ```
 
-默认轻量检查会执行：
+默认会复制：
 
-```text
-unittest
-py_compile
-sync strategy to ft_userdata
-Binance exchange preflight
-short smoke backtest 20260401-20260403
-```
+- `D:\test\NostalgiaForInfinity\NostalgiaForInfinityX7.py`
+- `D:\test\nfi-alpha-strategy\strategies\NFIRiskDurationStrategy.py`
 
-`-RunHalfyear` 会额外执行：
+到：
 
-```text
-halfyear no-cache backtest 20251016-20260415
-expected 61 trades / +1757.800 USDT / +580.90%
-expected enter tag distribution
-```
+- `D:\test\ft_userdata\user_data\strategies`
 
-如果只是想跳过提前的 Binance endpoint 检查，可以加：
+## 推荐阅读顺序
 
-```powershell
-powershell -ExecutionPolicy Bypass -File D:\test\nfi-alpha-strategy\scripts\run_nfi_refactor_regression.ps1 -SkipExchangePreflight
-```
+1. `docs/当前进度说明.md`
+2. `strategies/NFIRiskDurationStrategy.py`
+3. `scripts/sync_recovery_cut_gentle_wrapper.ps1`
+4. `docs/工程设计总纲.md`
+5. `archive/重构旧路线/README.md`
 
-注意：`-SkipExchangePreflight` 只是不做提前网络探测；Freqtrade 回测本身仍可能因为 Binance `exchangeInfo` 无法访问而失败。
+## 当前判断
+
+当前最值得继续验证的是 RecoveryCutGentle 包装版，尤其是：
+
+- `max_open_trades=4`：更稳，回撤和最大水下比例更健康。
+- `max_open_trades=2`：收益爆发更强，但单仓资金占比更大，风险更集中。
+
+后续 FreqAI 接入也建议作为包装层增强，而不是直接侵入 NFI 主流程。
